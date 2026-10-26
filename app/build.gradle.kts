@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -66,4 +67,14 @@ dependencies {
 
     // Escaneo de códigos de barras
     implementation(libs.mlkit.barcode)
+
+    // Cliente de Supabase
+    implementation(platform(libs.supabase.bom))
+
+// Autenticación y acceso a PostgreSQL
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.postgrest)
+
+// Cliente HTTP para las peticiones
+    implementation(libs.ktor.android)
 }
