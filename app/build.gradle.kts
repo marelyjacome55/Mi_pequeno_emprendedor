@@ -57,6 +57,7 @@ android {
 }
 
 dependencies {
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -95,4 +96,6 @@ dependencies {
 
 // Cliente HTTP para las peticiones
     implementation(libs.ktor.android)
+//Iconos de material
+    implementation("androidx.compose.material:material-icons-extended")
 }
