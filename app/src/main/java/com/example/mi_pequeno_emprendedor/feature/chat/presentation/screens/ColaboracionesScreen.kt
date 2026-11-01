@@ -1,6 +1,10 @@
 
 package com.example.mi_pequeno_emprendedor.feature.chat.presentation.screens
 
+import com.example.mi_pequeno_emprendedor.ui.components.NavegacionInferior
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,16 +44,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.foundation.clickable
 private val AzulPrincipal = Color(0xFF0057CE)
-private val AzulOscuro = Color(0xFF0808AE)
 private val AzulClaro = Color(0xFFE5F0FF)
 private val TextoPrincipal = Color(0xFF111B5E)
 private val TextoSecundario = Color(0xFF667092)
@@ -64,7 +64,8 @@ private data class ChatItem(
     val colorAvatar: Color = AzulClaro,
     val emoji: String = "",
     val noLeidos: Int = 0,
-    val fijado: Boolean = false
+    val fijado: Boolean = false,
+    val esGrupo: Boolean = false
 )
 
 private val chatsFijados = listOf(
@@ -74,7 +75,8 @@ private val chatsFijados = listOf(
         hora = "9:30 AM",
         emoji = "🐬",
         noLeidos = 3,
-        fijado = true
+        fijado = true,
+        esGrupo = true
     ),
     ChatItem(
         nombre = "Tiburones Unidos",
@@ -82,7 +84,8 @@ private val chatsFijados = listOf(
         hora = "Ayer",
         emoji = "🦈",
         noLeidos = 1,
-        fijado = true
+        fijado = true,
+        esGrupo = true
     )
 )
 
@@ -106,7 +109,8 @@ private val todosLosChats = listOf(
         nombre = "Combo Verano",
         mensaje = "Tú: Propuse un nuevo combo",
         hora = "Dom",
-        emoji = "🐬"
+        emoji = "🐬" ,
+        esGrupo = true
     ),
     ChatItem(
         nombre = "Miguel Rodríguez",
@@ -119,7 +123,8 @@ private val todosLosChats = listOf(
         nombre = "Equipo Tortugas",
         mensaje = "Sofía: Listo, ya quedó aprobado",
         hora = "Sáb",
-        emoji = "🐢"
+        emoji = "🐢",
+        esGrupo = true
     ),
     ChatItem(
         nombre = "Paola Sánchez",
@@ -129,6 +134,7 @@ private val todosLosChats = listOf(
         colorAvatar = Color(0xFFFFD2E1)
     )
 )
+
 
 @Composable
 fun ColaboracionesScreen(
@@ -143,14 +149,17 @@ fun ColaboracionesScreen(
     var busqueda by rememberSaveable { mutableStateOf("") }
     var mostrarFijados by rememberSaveable { mutableStateOf(true) }
 
-    val fijadosFiltrados = chatsFijados.filter {
-        it.nombre.contains(busqueda, ignoreCase = true) ||
-                it.mensaje.contains(busqueda, ignoreCase = true)
+    val coincideBusqueda: (ChatItem) -> Boolean = { chat ->
+        chat.nombre.contains(busqueda, ignoreCase = true) ||
+                chat.mensaje.contains(busqueda, ignoreCase = true)
     }
 
-    val chatsFiltrados = todosLosChats.filter {
-        it.nombre.contains(busqueda, ignoreCase = true) ||
-                it.mensaje.contains(busqueda, ignoreCase = true)
+    val fijadosFiltrados = chatsFijados.filter(coincideBusqueda)
+
+    val todosLosChatsFiltrados = todosLosChats.filter(coincideBusqueda)
+
+    val equiposFiltrados = (chatsFijados + todosLosChats).filter {
+        it.esGrupo && coincideBusqueda(it)
     }
 
     Column(
@@ -163,7 +172,6 @@ fun ColaboracionesScreen(
             alAbrirNotificaciones = alAbrirNotificaciones
         )
 
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -172,8 +180,7 @@ fun ColaboracionesScreen(
                 .padding(top = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
-        PestanaColaboraciones(
+            PestanaColaboraciones(
                 texto = "Chats",
                 seleccionada = pestanaSeleccionada == "Chats",
                 modifier = Modifier.weight(1f),
@@ -181,7 +188,8 @@ fun ColaboracionesScreen(
                     Icon(
                         Icons.Default.ChatBubble,
                         contentDescription = null,
-                        tint = if (pestanaSeleccionada == "Chats") AzulPrincipal else TextoSecundario,
+                        tint = if (pestanaSeleccionada == "Chats")
+                            AzulPrincipal else TextoSecundario,
                         modifier = Modifier.size(25.dp)
                     )
                 },
@@ -196,7 +204,8 @@ fun ColaboracionesScreen(
                     Icon(
                         Icons.Default.Groups,
                         contentDescription = null,
-                        tint = if (pestanaSeleccionada == "Equipos") AzulPrincipal else TextoSecundario,
+                        tint = if (pestanaSeleccionada == "Equipos")
+                            AzulPrincipal else TextoSecundario,
                         modifier = Modifier.size(25.dp)
                     )
                 },
@@ -215,7 +224,12 @@ fun ColaboracionesScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp, end = 18.dp, top = 20.dp, bottom = 14.dp),
+                    .padding(
+                        start = 24.dp,
+                        end = 18.dp,
+                        top = 20.dp,
+                        bottom = 14.dp
+                    ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -248,8 +262,9 @@ fun ColaboracionesScreen(
             Spacer(Modifier.height(18.dp))
 
             if (pestanaSeleccionada == "Chats") {
+
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
                         bottom = 12.dp
                     )
@@ -288,13 +303,22 @@ fun ColaboracionesScreen(
                                     )
 
                                     IconButton(
-                                        onClick = { mostrarFijados = !mostrarFijados },
-                                        modifier = Modifier.size(32.dp)
+                                        onClick = {
+                                            mostrarFijados = !mostrarFijados
+                                        },
+                                        modifier = Modifier.size(40.dp)
                                     ) {
-                                        Text(
-                                            if (mostrarFijados) "⌃" else "⌄",
-                                            color = AzulPrincipal,
-                                            fontSize = 25.sp
+                                        Icon(
+                                            imageVector = if (mostrarFijados)
+                                                Icons.Default.KeyboardArrowUp
+                                            else
+                                                Icons.Default.KeyboardArrowDown,
+                                            contentDescription = if (mostrarFijados)
+                                                "Ocultar chats fijados"
+                                            else
+                                                "Mostrar chats fijados",
+                                            tint = AzulPrincipal,
+                                            modifier = Modifier.size(30.dp)
                                         )
                                     }
                                 }
@@ -303,8 +327,11 @@ fun ColaboracionesScreen(
                                     fijadosFiltrados.forEach { chat ->
                                         ChatFijadoFila(
                                             chat = chat,
-                                            alHacerClick = { alAbrirChat(chat.nombre) }
+                                            alHacerClick = {
+                                                alAbrirChat(chat.nombre)
+                                            }
                                         )
+
                                         Spacer(Modifier.height(8.dp))
                                     }
                                 }
@@ -324,533 +351,440 @@ fun ColaboracionesScreen(
                         )
                     }
 
-                    items(chatsFiltrados, key = { it.nombre }) { chat ->
-                        ChatNormalFila(
-                            chat = chat,
-                            alHacerClick = { alAbrirChat(chat.nombre) }
-                        )
+                    if (todosLosChatsFiltrados.isEmpty()) {
+                        item {
+                            Text(
+                                text = "No hay chats disponibles.",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                color = TextoSecundario
+                            )
+                        }
+                    } else {
+                        items(
+                            todosLosChatsFiltrados,
+                            key = { it.nombre }
+                        ) { chat ->
+                            ChatNormalFila(
+                                chat = chat,
+                                alHacerClick = {
+                                    alAbrirChat(chat.nombre)
+                                }
+                            )
+                        }
                     }
                 }
+
             } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        bottom = 12.dp
+                    )
                 ) {
-                    Icon(
-                        Icons.Default.Groups,
-                        contentDescription = null,
-                        tint = AzulPrincipal,
-                        modifier = Modifier.size(54.dp)
-                    )
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Text(
-                        "Equipos",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoPrincipal
-                    )
-
-                    Text(
-                        "Aquí aparecerán tus equipos de colaboración.",
-                        color = TextoSecundario,
-                        fontSize = 15.sp
-                    )
+                    if (equiposFiltrados.isEmpty()) {
+                        item {
+                            Text(
+                                text = "No hay equipos disponibles.",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                color = TextoSecundario
+                            )
+                        }
+                    } else {
+                        items(
+                            equiposFiltrados,
+                            key = { it.nombre }
+                        ) { chat ->
+                            ChatNormalFila(
+                                chat = chat,
+                                alHacerClick = {
+                                    alAbrirChat(chat.nombre)
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
 
         NavegacionInferior(
+            seccionSeleccionada = "Colaboraciones",
             alCambiarSeccion = alCambiarSeccion
         )
     }
 }
+            @Composable
+            private fun EncabezadoColaboraciones(
+                alAbrirMenu: () -> Unit,
+                alAbrirNotificaciones: () -> Unit
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(AzulPrincipal)
+                        .statusBarsPadding()
+                        .padding(top = 8.dp, bottom = 16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = alAbrirMenu) {
+                            Icon(
+                                Icons.Default.Menu,
+                                contentDescription = "Abrir menú",
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
 
-@Composable
-private fun EncabezadoColaboraciones(
-    alAbrirMenu: () -> Unit,
-    alAbrirNotificaciones: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(AzulPrincipal)
-            .padding(top = 14.dp, bottom = 22.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = alAbrirMenu) {
-                Icon(
-                    Icons.Default.Menu,
-                    contentDescription = "Abrir menú",
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
+                        Text(
+                            text = "Colaboraciones",
+                            color = Color.White,
+                            fontSize = 27.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 14.dp)
+                        )
+
+                        IconButton(onClick = alAbrirNotificaciones) {
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = "Notificaciones",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 32.dp, end = 32.dp, top = 8.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            color = Color.White,
+                            shape = RoundedCornerShape(30.dp)
+                        ) {
+                            Text(
+                                text = "Nivel",
+                                modifier = Modifier.padding(
+                                    horizontal = 22.dp,
+                                    vertical = 9.dp
+                                ),
+                                color = AzulPrincipal,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
             }
 
-            Text(
-                text = "Colaboraciones",
-                color = Color.White,
-                fontSize = 27.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 14.dp)
-            )
 
-            IconButton(onClick = alAbrirNotificaciones) {
-                Icon(
-                    Icons.Default.Notifications,
-                    contentDescription = "Notificaciones",
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 32.dp, end = 32.dp, top = 8.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
+        @Composable
+        private fun PestanaColaboraciones(
+            texto: String,
+            seleccionada: Boolean,
+            modifier: Modifier = Modifier,
+            icono: @Composable () -> Unit,
+            alSeleccionar: () -> Unit
         ) {
-            Surface(
-                color = Color.White,
-                shape = RoundedCornerShape(30.dp)
+            Column(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .height(58.dp)
+                    .clickable(onClick = alSeleccionar)
+                    .background(Fondo),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 11.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("🐋", fontSize = 23.sp)
+                    icono()
 
                     Spacer(Modifier.width(10.dp))
 
                     Text(
-                        "Nivel Beluga",
-                        color = AzulPrincipal,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = texto,
+                        color = if (seleccionada) AzulPrincipal else TextoSecundario,
+                        fontWeight = if (seleccionada) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 16.sp
                     )
                 }
-            }
-        }
-    }
-}
 
-
-@Composable
-private fun PestanaColaboraciones(
-    texto: String,
-    seleccionada: Boolean,
-    modifier: Modifier = Modifier,
-    icono: @Composable () -> Unit,
-    alSeleccionar: () -> Unit
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(58.dp)
-            .clickable(onClick = alSeleccionar)
-            .background(Fondo),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Bottom
-    ) {
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            icono()
-
-            Spacer(Modifier.width(10.dp))
-
-            Text(
-                text = texto,
-                color = if (seleccionada) AzulPrincipal else TextoSecundario,
-                fontWeight = if (seleccionada) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 16.sp
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .background(
-                    if (seleccionada) AzulPrincipal else Fondo
-                )
-        )
-    }
-}
-
-
-@Composable
-private fun BuscadorChats(
-    texto: String,
-    alCambiarTexto: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(54.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFFF4F6FA))
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            Icons.Default.Search,
-            contentDescription = "Buscar",
-            tint = TextoSecundario,
-            modifier = Modifier.size(27.dp)
-        )
-
-        Spacer(Modifier.width(16.dp))
-
-        BasicTextField(
-            value = texto,
-            onValueChange = alCambiarTexto,
-            singleLine = true,
-            textStyle = androidx.compose.ui.text.TextStyle(
-                fontSize = 15.sp,
-                color = TextoPrincipal
-            ),
-            decorationBox = { contenido ->
-                Box {
-                    if (texto.isEmpty()) {
-                        Text(
-                            "Buscar chats...",
-                            color = TextoSecundario,
-                            fontSize = 15.sp
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .background(
+                            if (seleccionada) AzulPrincipal else Fondo
                         )
-                    }
-                    contenido()
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-@Composable
-private fun ChatFijadoFila(
-    chat: ChatItem,
-    alHacerClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = alHacerClick)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xFFF5F8FF))
-            .padding(horizontal = 12.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-        AvatarChat(chat = chat, tamanio = 88.dp)
-
-        Spacer(Modifier.width(14.dp))
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                chat.nombre,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextoPrincipal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(Modifier.height(7.dp))
-
-            Text(
-                chat.mensaje,
-                fontSize = 15.sp,
-                color = TextoSecundario,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                lineHeight = 22.sp
-            )
-        }
-
-        Spacer(Modifier.width(6.dp))
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                chat.hora,
-                color = TextoSecundario,
-                fontSize = 12.sp
-            )
-
-            Spacer(Modifier.height(10.dp))
-
-            if (chat.noLeidos > 0) {
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(AzulPrincipal),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        chat.noLeidos.toString(),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                }
+                )
             }
         }
 
-        Spacer(Modifier.width(10.dp))
 
-        Icon(
-            Icons.Default.PushPin,
-            contentDescription = "Chat fijado",
-            tint = AzulPrincipal,
-            modifier = Modifier.size(23.dp)
-        )
-    }
-}
-
-
-@Composable
-private fun ChatNormalFila(
-    chat: ChatItem,
-    alHacerClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = alHacerClick)
-            .clip(RoundedCornerShape(8.dp))
-            .background(Fondo)
-            .padding(horizontal = 26.dp, vertical = 13.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-        AvatarChat(chat = chat, tamanio = 72.dp)
-
-        Spacer(Modifier.width(16.dp))
-
-        Column(
-            modifier = Modifier.weight(1f)
+        @Composable
+        private fun BuscadorChats(
+            texto: String,
+            alCambiarTexto: (String) -> Unit,
+            modifier: Modifier = Modifier
         ) {
-            Text(
-                chat.nombre,
-                fontSize = 18.sp,
-                color = TextoPrincipal,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFFF4F6FA))
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = "Buscar",
+                    tint = TextoSecundario,
+                    modifier = Modifier.size(27.dp)
+                )
 
-            Spacer(Modifier.height(7.dp))
+                Spacer(Modifier.width(16.dp))
 
-            Text(
-                chat.mensaje,
-                color = TextoSecundario,
-                fontSize = 15.sp,
-                lineHeight = 22.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                BasicTextField(
+                    value = texto,
+                    onValueChange = alCambiarTexto,
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(
+                        fontSize = 15.sp,
+                        color = TextoPrincipal
+                    ),
+                    decorationBox = { contenido ->
+                        Box {
+                            if (texto.isEmpty()) {
+                                Text(
+                                    "Buscar chats...",
+                                    color = TextoSecundario,
+                                    fontSize = 15.sp
+                                )
+                            }
+                            contenido()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        @Composable
+        private fun ChatFijadoFila(
+            chat: ChatItem,
+            alHacerClick: () -> Unit
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = alHacerClick)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFFF5F8FF))
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                AvatarChat(chat = chat, tamanio = 58.dp)
+
+                Spacer(Modifier.width(14.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        chat.nombre,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextoPrincipal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(Modifier.height(7.dp))
+
+                    Text(
+                        chat.mensaje,
+                        fontSize = 13.sp,
+                        color = TextoSecundario,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 22.sp
+                    )
+                }
+
+                Spacer(Modifier.width(6.dp))
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        chat.hora,
+                        color = TextoSecundario,
+                        fontSize = 12.sp
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    if (chat.noLeidos > 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(AzulPrincipal),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                chat.noLeidos.toString(),
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.width(10.dp))
+
+                Icon(
+                    Icons.Default.PushPin,
+                    contentDescription = "Chat fijado",
+                    tint = AzulPrincipal,
+                    modifier = Modifier.size(23.dp)
+                )
+            }
+        }
+
+
+        @Composable
+        private fun ChatNormalFila(
+            chat: ChatItem,
+            alHacerClick: () -> Unit
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = alHacerClick)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Fondo)
+                    .padding(horizontal = 18.dp, vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                AvatarChat(chat = chat, tamanio = 54.dp)
+
+                Spacer(Modifier.width(16.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        chat.nombre,
+                        fontSize = 16.sp,
+                        color = TextoPrincipal,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(Modifier.height(7.dp))
+
+                    Text(
+                        chat.mensaje,
+                        color = TextoSecundario,
+                        fontSize = 13.sp,
+                        lineHeight = 22.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        chat.hora,
+                        color = TextoSecundario,
+                        fontSize = 13.sp
+                    )
+
+                    if (chat.noLeidos > 0) {
+                        Spacer(Modifier.height(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .size(29.dp)
+                                .clip(CircleShape)
+                                .background(AzulPrincipal),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                chat.noLeidos.toString(),
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 112.dp, end = 24.dp)
+                    .height(1.dp)
+                    .background(Separador)
             )
         }
 
-        Spacer(Modifier.width(8.dp))
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+        @Composable
+        private fun AvatarChat(
+            chat: ChatItem,
+            tamanio: androidx.compose.ui.unit.Dp
         ) {
-            Text(
-                chat.hora,
-                color = TextoSecundario,
-                fontSize = 13.sp
-            )
-
-            if (chat.noLeidos > 0) {
-                Spacer(Modifier.height(8.dp))
-
-                Box(
-                    modifier = Modifier
-                        .size(29.dp)
-                        .clip(CircleShape)
-                        .background(AzulPrincipal),
-                    contentAlignment = Alignment.Center
-                ) {
+            Box(
+                modifier = Modifier
+                    .size(tamanio)
+                    .clip(RoundedCornerShape(if (chat.emoji.isNotEmpty()) 18.dp else 100.dp))
+                    .background(chat.colorAvatar),
+                contentAlignment = Alignment.Center
+            ) {
+                if (chat.emoji.isNotEmpty()) {
+                    Text(chat.emoji, fontSize = (tamanio.value * 0.52f).sp)
+                } else {
                     Text(
-                        chat.noLeidos.toString(),
-                        color = Color.White,
-                        fontSize = 13.sp,
+                        chat.iniciales,
+                        color = if (chat.iniciales == "AF") Color(0xFF0AA14F)
+                        else if (chat.iniciales == "MR") Color(0xFFE87518)
+                        else if (chat.iniciales == "PS") Color(0xFFED2874)
+                        else Color.White,
+                        fontSize = (tamanio.value * 0.31f).sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 112.dp, end = 24.dp)
-            .height(1.dp)
-            .background(Separador)
-    )
-}
-
-@Composable
-private fun AvatarChat(
-    chat: ChatItem,
-    tamanio: androidx.compose.ui.unit.Dp
-) {
-    Box(
-        modifier = Modifier
-            .size(tamanio)
-            .clip(RoundedCornerShape(if (chat.emoji.isNotEmpty()) 18.dp else 100.dp))
-            .background(chat.colorAvatar),
-        contentAlignment = Alignment.Center
-    ) {
-        if (chat.emoji.isNotEmpty()) {
-            Text(chat.emoji, fontSize = (tamanio.value * 0.52f).sp)
-        } else {
-            Text(
-                chat.iniciales,
-                color = if (chat.iniciales == "AF") Color(0xFF0AA14F)
-                else if (chat.iniciales == "MR") Color(0xFFE87518)
-                else if (chat.iniciales == "PS") Color(0xFFED2874)
-                else Color.White,
-                fontSize = (tamanio.value * 0.31f).sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-private fun NavegacionInferior(
-    alCambiarSeccion: (String) -> Unit
-) {
-    Surface(
-        color = Color.White,
-        shadowElevation = 8.dp,
-        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ElementoNavegacion(
-                nombre = "Inicio",
-                icono = {
-                    Icon(Icons.Default.Home, contentDescription = null)
-                },
-                seleccionado = false,
-                modifier = Modifier.weight(1f),
-                alHacerClick = { alCambiarSeccion("Inicio") }
-            )
-
-            ElementoNavegacion(
-                nombre = "Estadísticas\navanzadas",
-                icono = {
-                    Icon(Icons.Default.BarChart, contentDescription = null)
-                },
-                seleccionado = false,
-                modifier = Modifier.weight(1.3f),
-                alHacerClick = { alCambiarSeccion("Estadísticas") }
-            )
-
-            ElementoNavegacion(
-                nombre = "Colaboraciones",
-                icono = {
-                    Icon(Icons.Default.Groups, contentDescription = null)
-                },
-                seleccionado = true,
-                modifier = Modifier.weight(1.4f),
-                alHacerClick = { alCambiarSeccion("Colaboraciones") }
-            )
-
-            ElementoNavegacion(
-                nombre = "Perfil",
-                icono = {
-                    Icon(Icons.Default.Person, contentDescription = null)
-                },
-                seleccionado = false,
-                modifier = Modifier.weight(1f),
-                alHacerClick = { alCambiarSeccion("Perfil") }
-            )
-        }
-    }
-}
-
-@Composable
-private fun ElementoNavegacion(
-    nombre: String,
-    icono: @Composable () -> Unit,
-    seleccionado: Boolean,
-    modifier: Modifier = Modifier,
-    alHacerClick: () -> Unit
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = alHacerClick)
-            .padding(vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-
-        Box(
-            modifier = Modifier.size(34.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            androidx.compose.runtime.CompositionLocalProvider(
-                androidx.compose.material3.LocalContentColor provides
-                        if (seleccionado) AzulPrincipal else TextoSecundario
-            ) {
-                icono()
-            }
-        }
-
-        Spacer(Modifier.height(5.dp))
-
-        Text(
-            nombre,
-            color = if (seleccionado) AzulPrincipal else TextoSecundario,
-            fontSize = 12.sp,
-            fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Normal,
-            lineHeight = 16.sp
-        )
-
-        if (seleccionado) {
-            Spacer(Modifier.height(6.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(AzulPrincipal)
-            )
-        }
-    }
-}

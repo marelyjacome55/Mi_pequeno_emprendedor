@@ -47,8 +47,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachFile
 
 private val ChatAzul = Color(0xFF0057CE)
 private val ChatAzulClaro = Color(0xFFE5F0FF)
@@ -411,16 +409,6 @@ private fun EntradaMensaje(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = {},
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Adjuntar",
-                    tint = ChatAzul
-                )
-            }
 
             Row(
                 modifier = Modifier
@@ -451,15 +439,6 @@ private fun EntradaMensaje(
                             contenido()
                         }
                     }
-                )
-
-                Spacer(Modifier.width(8.dp))
-
-                Icon(
-                    Icons.Default.AttachFile,
-                    contentDescription = "Adjuntar archivo",
-                    tint = ChatGris,
-                    modifier = Modifier.size(20.dp)
                 )
             }
 
