@@ -7,7 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -16,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-
 import com.example.mi_pequeno_emprendedor.feature.chat.presentation.screens.ChatConversacionScreen
 import com.example.mi_pequeno_emprendedor.feature.chat.presentation.screens.ColaboracionesScreen
 import com.example.mi_pequeno_emprendedor.feature.configuracion.presentation.screens.ConfiguracionScreen
@@ -32,23 +30,49 @@ class MainActivity : ComponentActivity() {
             Mi_pequeno_emprendedorTheme {
 
                 var seccionActual by remember {
-                    mutableStateOf("Configuracion")
+                    mutableStateOf("Colaboraciones")
                 }
 
                 var chatSeleccionado by remember {
-                    mutableStateOf<String?>(null)
+                    mutableStateOf<Pair<Long, String>?>(null)
+                }
+
+                // Estado compartido de los chats fijados.
+                var chatsFijados by remember {
+                    mutableStateOf(setOf(1L, 2L))
                 }
 
                 Surface(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color.White
                 ) {
 
-                    if (chatSeleccionado != null) {
+                    val chatActual = chatSeleccionado
+
+                    if (chatActual != null) {
 
                         ChatConversacionScreen(
-                            nombreChat = chatSeleccionado!!,
+                            chatId = chatActual.first,
+                            nombreChat = chatActual.second,
+
                             alVolver = {
                                 chatSeleccionado = null
+                            },
+
+                            alSalirGrupo = {
+                                chatSeleccionado = null
+                            },
+
+                            fijado = chatActual.first in chatsFijados,
+
+                            alCambiarAnclaje = { nuevoEstado ->
+
+                                chatsFijados =
+                                    if (nuevoEstado) {
+                                        chatsFijados + chatActual.first
+                                    } else {
+                                        chatsFijados - chatActual.first
+                                    }
                             }
                         )
 
@@ -66,9 +90,23 @@ class MainActivity : ComponentActivity() {
 
                             "Colaboraciones" -> {
                                 ColaboracionesScreen(
-                                    alAbrirChat = { nombre ->
-                                        chatSeleccionado = nombre
+
+                                    alAbrirChat = { id, nombre ->
+                                        chatSeleccionado = id to nombre
                                     },
+
+                                    chatsFijadosIniciales = chatsFijados,
+
+                                    alCambiarAnclaje = { id, fijado ->
+
+                                        chatsFijados =
+                                            if (fijado) {
+                                                chatsFijados + id
+                                            } else {
+                                                chatsFijados - id
+                                            }
+                                    },
+
                                     alCambiarSeccion = { seccion ->
                                         seccionActual = seccion
                                     }

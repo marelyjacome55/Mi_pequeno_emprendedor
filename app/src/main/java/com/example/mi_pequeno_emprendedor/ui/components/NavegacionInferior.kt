@@ -1,3 +1,4 @@
+
 package com.example.mi_pequeno_emprendedor.ui.components
 
 import androidx.compose.foundation.background
@@ -13,6 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,16 +34,15 @@ fun NavegacionInferior(
     Surface(
         color = Color.White,
         shadowElevation = 8.dp,
-        shape = RoundedCornerShape(
-            topStart = 22.dp,
-            topEnd = 22.dp
-        ),
-        modifier = Modifier.fillMaxWidth()
+        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.navigationBars)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .padding(horizontal = 10.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             ElementoNav(
@@ -100,14 +101,14 @@ private fun ElementoNav(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .clickable { alHacerClick(seccion) }
-            .padding(vertical = 4.dp),
+            .padding(vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(32.dp),
             contentAlignment = Alignment.Center
         ) {
-            androidx.compose.runtime.CompositionLocalProvider(
+            CompositionLocalProvider(
                 androidx.compose.material3.LocalContentColor provides
                         if (seleccionado) AzulNav else GrisNav
             ) {
@@ -115,26 +116,22 @@ private fun ElementoNav(
             }
         }
 
-        Spacer(Modifier.height(5.dp))
+        Spacer(Modifier.height(3.dp))
 
         Text(
             text = nombre,
             color = if (seleccionado) AzulNav else GrisNav,
-            fontSize = 12.sp,
-            fontWeight = if (seleccionado) {
-                FontWeight.SemiBold
-            } else {
-                FontWeight.Normal
-            },
-            lineHeight = 16.sp
+            fontSize = 11.sp,
+            fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Normal,
+            lineHeight = 14.sp
         )
 
         if (seleccionado) {
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
-                    .height(4.dp)
+                    .height(3.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(AzulNav)
             )
