@@ -11,7 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,11 +20,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.example.mi_pequeno_emprendedor.ui.components.NavegacionInferior
 
 private val AzulPrincipal = Color(0xFF0057CE)
 private val FondoPantalla = Color(0xFFFFFFFF)
 private val TextoPrincipal = Color(0xFF0808AE)
-private val TextoSecundario = Color(0xFF777F91)
+private val TextoSecundario = Color(0xFF667092)
 private val FondoIcono = Color(0xFFE5F0FF)
 private val RojoCerrar = Color(0xFFEF5B45)
 private val FondoRojo = Color(0xFFFDEBEA)
@@ -37,14 +39,16 @@ fun ConfiguracionScreen(
     alAbrirNotificaciones: () -> Unit = {},
     alAbrirOpcion: (String) -> Unit = {}
 ) {
+    var mostrarDialogoCerrarSesion by remember {
+        mutableStateOf(false)
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(FondoPantalla)
     ) {
-
         EncabezadoConfiguracion(
-            alAbrirMenu = alAbrirMenu,
             alAbrirNotificaciones = alAbrirNotificaciones
         )
 
@@ -56,7 +60,6 @@ fun ConfiguracionScreen(
                 .padding(horizontal = 20.dp)
                 .padding(top = 18.dp, bottom = 18.dp)
         ) {
-
             TituloSeccionConfiguracion("Mi perfil")
 
             Spacer(Modifier.height(10.dp))
@@ -64,7 +67,7 @@ fun ConfiguracionScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(Color.White)
             ) {
                 FilaConfiguracion(
@@ -101,7 +104,7 @@ fun ConfiguracionScreen(
                 )
             }
 
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(20.dp))
 
             TituloSeccionConfiguracion("Configuración")
 
@@ -110,7 +113,7 @@ fun ConfiguracionScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(Color.White)
             ) {
                 FilaConfiguracion(
@@ -144,22 +147,34 @@ fun ConfiguracionScreen(
                     colorFondoIcono = FondoRojo,
                     colorTexto = RojoCerrar,
                     alHacerClick = {
-                        alAbrirOpcion("Cerrar sesión")
+                        mostrarDialogoCerrarSesion = true
                     },
                     mostrarSeparador = false
                 )
             }
         }
 
-        NavegacionInferiorConfiguracion(
+        NavegacionInferior(
+            seccionSeleccionada = "Perfil",
             alCambiarSeccion = alCambiarSeccion
+        )
+    }
+
+    if (mostrarDialogoCerrarSesion) {
+        DialogoCerrarSesion(
+            alCancelar = {
+                mostrarDialogoCerrarSesion = false
+            },
+            alConfirmar = {
+                mostrarDialogoCerrarSesion = false
+                alAbrirOpcion("Cerrar sesión confirmada")
+            }
         )
     }
 }
 
 @Composable
 private fun EncabezadoConfiguracion(
-    alAbrirMenu: () -> Unit,
     alAbrirNotificaciones: () -> Unit
 ) {
     Column(
@@ -167,37 +182,25 @@ private fun EncabezadoConfiguracion(
             .fillMaxWidth()
             .background(AzulPrincipal)
             .statusBarsPadding()
-            .padding(top = 8.dp, bottom = 24.dp)
+            .padding(top = 8.dp, bottom = 18.dp)
     ) {
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = alAbrirMenu) {
-                Icon(
-                    Icons.Default.Menu,
-                    contentDescription = "Abrir menú",
-                    tint = Color.White,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-
             Text(
-                text = "Mi Pequeño Emprendedor",
+                text = "Configuración",
                 color = Color.White,
                 fontSize = 21.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 8.dp)
+                modifier = Modifier.weight(1f)
             )
 
             IconButton(onClick = alAbrirNotificaciones) {
                 Icon(
-                    Icons.Default.Notifications,
+                    imageVector = Icons.Default.Notifications,
                     contentDescription = "Notificaciones",
                     tint = Color.White,
                     modifier = Modifier.size(27.dp)
@@ -208,13 +211,12 @@ private fun EncabezadoConfiguracion(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 28.dp, end = 24.dp, top = 18.dp),
+                .padding(start = 28.dp, end = 20.dp, top = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Box(
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(58.dp)
                     .clip(CircleShape)
                     .background(Color(0xFF3989EC)),
                 contentAlignment = Alignment.Center
@@ -222,48 +224,39 @@ private fun EncabezadoConfiguracion(
                 Text(
                     text = "M",
                     color = Color.White,
-                    fontSize = 32.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Medium
                 )
             }
 
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(13.dp))
 
-            Column(
+            Text(
+                text = "Hola, Marely",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "Hola, Marely",
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "Administra tu cuenta",
-                    color = Color.White,
-                    fontSize = 15.sp
-                )
-            }
+            )
 
             Surface(
                 color = Color.White,
                 shape = RoundedCornerShape(30.dp),
-                shadowElevation = 4.dp
+                shadowElevation = 3.dp
             ) {
                 Row(
                     modifier = Modifier.padding(
-                        horizontal = 12.dp,
-                        vertical = 11.dp
+                        horizontal = 11.dp,
+                        vertical = 8.dp
                     ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("🐋", fontSize = 22.sp)
+                    Text("🐋", fontSize = 19.sp)
 
-                    Spacer(Modifier.width(7.dp))
+                    Spacer(Modifier.width(6.dp))
 
                     Text(
-                        text = "Nivel Beluga",
+                        text = "Nivel",
                         color = AzulPrincipal,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
@@ -281,7 +274,7 @@ private fun TituloSeccionConfiguracion(
     Text(
         text = titulo,
         color = TextoPrincipal,
-        fontSize = 20.sp,
+        fontSize = 19.sp,
         fontWeight = FontWeight.Bold
     )
 }
@@ -301,14 +294,13 @@ private fun FilaConfiguracion(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = alHacerClick)
-                .padding(horizontal = 16.dp, vertical = 9.dp),
+                .padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Box(
                 modifier = Modifier
-                    .size(43.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(13.dp))
                     .background(colorFondoIcono),
                 contentAlignment = Alignment.Center
             ) {
@@ -316,16 +308,16 @@ private fun FilaConfiguracion(
                     imageVector = icono,
                     contentDescription = null,
                     tint = colorIcono,
-                    modifier = Modifier.size(25.dp)
+                    modifier = Modifier.size(23.dp)
                 )
             }
 
-            Spacer(Modifier.width(15.dp))
+            Spacer(Modifier.width(13.dp))
 
             Text(
                 text = titulo,
                 color = colorTexto,
-                fontSize = 16.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
@@ -334,7 +326,7 @@ private fun FilaConfiguracion(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
                 tint = TextoSecundario,
-                modifier = Modifier.size(25.dp)
+                modifier = Modifier.size(23.dp)
             )
         }
 
@@ -348,112 +340,83 @@ private fun FilaConfiguracion(
 }
 
 @Composable
-private fun NavegacionInferiorConfiguracion(
-    alCambiarSeccion: (String) -> Unit
+private fun DialogoCerrarSesion(
+    alCancelar: () -> Unit,
+    alConfirmar: () -> Unit
 ) {
-    Surface(
-        color = Color.White,
-        shadowElevation = 8.dp,
-        shape = RoundedCornerShape(
-            topStart = 22.dp,
-            topEnd = 22.dp
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+    Dialog(onDismissRequest = alCancelar) {
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = Color.White,
+            tonalElevation = 5.dp
         ) {
-            ElementoNavegacionConfiguracion(
-                nombre = "Inicio",
-                icono = Icons.Default.Home,
-                modifier = Modifier.weight(1f),
-                alHacerClick = {
-                    alCambiarSeccion("Inicio")
-                }
-            )
-
-            ElementoNavegacionConfiguracion(
-                nombre = "Estadísticas\navanzadas",
-                icono = Icons.Default.BarChart,
-                modifier = Modifier.weight(1.3f),
-                alHacerClick = {
-                    alCambiarSeccion("Estadísticas")
-                }
-            )
-
-            ElementoNavegacionConfiguracion(
-                nombre = "Colaboraciones",
-                icono = Icons.Default.Groups,
-                modifier = Modifier.weight(1.4f),
-                alHacerClick = {
-                    alCambiarSeccion("Colaboraciones")
-                }
-            )
-
-            ElementoNavegacionConfiguracion(
-                nombre = "Perfil",
-                icono = Icons.Default.Person,
-                seleccionado = true,
-                modifier = Modifier.weight(1f),
-                alHacerClick = {
-                    alCambiarSeccion("Perfil")
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun ElementoNavegacionConfiguracion(
-    nombre: String,
-    icono: ImageVector,
-    seleccionado: Boolean = false,
-    modifier: Modifier = Modifier,
-    alHacerClick: () -> Unit
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = alHacerClick)
-            .padding(vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = icono,
-            contentDescription = nombre,
-            tint = if (seleccionado) AzulPrincipal else TextoSecundario,
-            modifier = Modifier.size(30.dp)
-        )
-
-        Spacer(Modifier.height(5.dp))
-
-        Text(
-            text = nombre,
-            color = if (seleccionado) AzulPrincipal else TextoSecundario,
-            fontSize = 11.sp,
-            fontWeight = if (seleccionado) {
-                FontWeight.SemiBold
-            } else {
-                FontWeight.Normal
-            },
-            lineHeight = 14.sp
-        )
-
-        if (seleccionado) {
-            Spacer(Modifier.height(5.dp))
-
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.75f)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(AzulPrincipal)
-            )
+                    .fillMaxWidth()
+                    .padding(22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(58.dp)
+                        .clip(CircleShape)
+                        .background(FondoRojo),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Logout,
+                        contentDescription = null,
+                        tint = RojoCerrar,
+                        modifier = Modifier.size(29.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Text(
+                    text = "¿Cerrar sesión?",
+                    color = TextoPrincipal,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    text = "¿Estás seguro de que deseas cerrar tu sesión?",
+                    color = TextoSecundario,
+                    fontSize = 14.sp
+                )
+
+                Spacer(Modifier.height(22.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = alCancelar,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = AzulPrincipal
+                        )
+                    ) {
+                        Text("Cancelar")
+                    }
+
+                    Button(
+                        onClick = alConfirmar,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = RojoCerrar
+                        )
+                    ) {
+                        Text("Cerrar sesión")
+                    }
+                }
+            }
         }
     }
 }
