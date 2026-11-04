@@ -1,4 +1,3 @@
-
 package com.example.mi_pequeno_emprendedor.ui.components
 
 import androidx.compose.foundation.background

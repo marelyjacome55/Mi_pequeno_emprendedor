@@ -1,19 +1,23 @@
 
 package com.example.mi_pequeno_emprendedor
 
+import com.example.mi_pequeno_emprendedor.feature.configuracion.presentation.screens.AyudaSoporteScreen
+import com.example.mi_pequeno_emprendedor.feature.configuracion.presentation.screens.TerminosPrivacidadScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mi_pequeno_emprendedor.feature.chat.presentation.screens.ChatConversacionScreen
 import com.example.mi_pequeno_emprendedor.feature.chat.presentation.screens.ColaboracionesScreen
@@ -37,9 +41,13 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf<Pair<Long, String>?>(null)
                 }
 
-                // Estado compartido de los chats fijados.
                 var chatsFijados by remember {
                     mutableStateOf(setOf(1L, 2L))
+                }
+
+                // Pantalla secundaria de Configuración.
+                var opcionConfiguracion by remember {
+                    mutableStateOf<String?>(null)
                 }
 
                 Surface(
@@ -48,97 +56,143 @@ class MainActivity : ComponentActivity() {
                 ) {
 
                     val chatActual = chatSeleccionado
+                    val opcionActual = opcionConfiguracion
 
-                    if (chatActual != null) {
+                    when {
 
-                        ChatConversacionScreen(
-                            chatId = chatActual.first,
-                            nombreChat = chatActual.second,
+                        // =====================================
+                        // CONVERSACIÓN
+                        // =====================================
+                        chatActual != null -> {
 
-                            alVolver = {
-                                chatSeleccionado = null
-                            },
+                            ChatConversacionScreen(
+                                chatId = chatActual.first,
+                                nombreChat = chatActual.second,
 
-                            alSalirGrupo = {
-                                chatSeleccionado = null
-                            },
+                                alVolver = {
+                                    chatSeleccionado = null
+                                },
 
-                            fijado = chatActual.first in chatsFijados,
+                                alSalirGrupo = {
+                                    chatSeleccionado = null
+                                },
 
-                            alCambiarAnclaje = { nuevoEstado ->
+                                fijado = chatActual.first in chatsFijados,
 
-                                chatsFijados =
-                                    if (nuevoEstado) {
-                                        chatsFijados + chatActual.first
-                                    } else {
-                                        chatsFijados - chatActual.first
-                                    }
+                                alCambiarAnclaje = { nuevoEstado ->
+
+                                    chatsFijados =
+                                        if (nuevoEstado) {
+                                            chatsFijados + chatActual.first
+                                        } else {
+                                            chatsFijados - chatActual.first
+                                        }
+                                }
+                            )
+                        }
+
+                        // =====================================
+                        // PANTALLAS SECUNDARIAS DE CONFIGURACIÓN
+                        // =====================================
+                        opcionActual != null -> {
+
+                            when (opcionActual) {
+
+                                "Ayuda y soporte" -> {
+                                    AyudaSoporteScreen(
+                                        alVolver = {
+                                            opcionConfiguracion = null
+                                        }
+                                    )
+                                }
+
+                                "Términos y privacidad" -> {
+                                    TerminosPrivacidadScreen(
+                                        alVolver = {
+                                            opcionConfiguracion = null
+                                        }
+                                    )
+                                }
+
+                                else -> {
+                                    PantallaOpcionConfiguracion(
+                                        titulo = opcionActual,
+                                        alVolver = {
+                                            opcionConfiguracion = null
+                                        }
+                                    )
+                                }
                             }
-                        )
+                        }
 
-                    } else {
+                        // =====================================
+                        // SECCIONES PRINCIPALES
+                        // =====================================
+                        else -> {
 
-                        when (seccionActual) {
+                            when (seccionActual) {
 
-                            "Configuracion" -> {
-                                ConfiguracionScreen(
-                                    alCambiarSeccion = { seccion ->
-                                        seccionActual = seccion
-                                    }
-                                )
-                            }
+                                "Configuracion", "Perfil" -> {
 
-                            "Colaboraciones" -> {
-                                ColaboracionesScreen(
+                                    ConfiguracionScreen(
+                                        alCambiarSeccion = { seccion ->
+                                            seccionActual = seccion
+                                        },
 
-                                    alAbrirChat = { id, nombre ->
-                                        chatSeleccionado = id to nombre
-                                    },
+                                        alAbrirOpcion = { opcion ->
 
-                                    chatsFijadosIniciales = chatsFijados,
-
-                                    alCambiarAnclaje = { id, fijado ->
-
-                                        chatsFijados =
-                                            if (fijado) {
-                                                chatsFijados + id
-                                            } else {
-                                                chatsFijados - id
+                                            if (opcion != "Cerrar sesión confirmada") {
+                                                opcionConfiguracion = opcion
                                             }
-                                    },
+                                        }
+                                    )
+                                }
 
-                                    alCambiarSeccion = { seccion ->
-                                        seccionActual = seccion
-                                    }
-                                )
-                            }
+                                "Colaboraciones" -> {
 
-                            "Inicio" -> {
-                                PantallaProvisional(
-                                    titulo = "Inicio"
-                                )
-                            }
+                                    ColaboracionesScreen(
 
-                            "Estadísticas" -> {
-                                PantallaProvisional(
-                                    titulo = "Estadísticas avanzadas"
-                                )
-                            }
+                                        alAbrirChat = { id, nombre ->
+                                            chatSeleccionado = id to nombre
+                                        },
 
-                            "Perfil" -> {
-                                ConfiguracionScreen(
-                                    alCambiarSeccion = { seccion ->
-                                        seccionActual = seccion
-                                    }
-                                )
-                            }
+                                        chatsFijadosIniciales = chatsFijados,
 
-                            else -> {
-                                ConfiguracionScreen(
-                                    alCambiarSeccion = { seccion ->
-                                        seccionActual = seccion
-                                    }
-                                )
+                                        alCambiarAnclaje = { id, fijado ->
+
+                                            chatsFijados =
+                                                if (fijado) {
+                                                    chatsFijados + id
+                                                } else {
+                                                    chatsFijados - id
+                                                }
+                                        },
+
+                                        alCambiarSeccion = { seccion ->
+                                            seccionActual = seccion
+                                        }
+                                    )
+                                }
+
+                                "Inicio" -> {
+                                    PantallaProvisional(
+                                        titulo = "Inicio"
+                                    )
+                                }
+
+                                "Estadísticas" -> {
+                                    PantallaProvisional(
+                                        titulo = "Estadísticas avanzadas"
+                                    )
+                                }
+
+                                else -> {
+                                    ConfiguracionScreen(
+                                        alCambiarSeccion = { seccion ->
+                                            seccionActual = seccion
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -148,6 +202,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// =====================================
+// PANTALLA PROVISIONAL
+// =====================================
 @Composable
 private fun PantallaProvisional(
     titulo: String
@@ -164,5 +221,60 @@ private fun PantallaProvisional(
             fontWeight = FontWeight.Bold,
             color = Color(0xFF0057CE)
         )
+    }
+}
+
+// =====================================
+// PANTALLAS SECUNDARIAS DE CONFIGURACIÓN
+// =====================================
+@Composable
+private fun PantallaOpcionConfiguracion(
+    titulo: String,
+    alVolver: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF0057CE))
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            IconButton(onClick = alVolver) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Regresar",
+                    tint = Color.White
+                )
+            }
+
+            Text(
+                text = titulo,
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Pantalla de $titulo",
+                color = Color(0xFF0808AE),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }

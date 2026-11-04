@@ -86,13 +86,13 @@ fun ConfiguracionScreen(
                     }
                 )
 
-                FilaConfiguracion(
+                /*FilaConfiguracion(
                     icono = Icons.Default.CreditCard,
                     titulo = "Métodos de cobro",
                     alHacerClick = {
                         alAbrirOpcion("Métodos de cobro")
                     }
-                )
+                )*/
 
                 FilaConfiguracion(
                     icono = Icons.Default.Lock,
@@ -173,6 +173,8 @@ fun ConfiguracionScreen(
     }
 }
 
+
+
 @Composable
 private fun EncabezadoConfiguracion(
     alAbrirNotificaciones: () -> Unit
@@ -182,12 +184,14 @@ private fun EncabezadoConfiguracion(
             .fillMaxWidth()
             .background(AzulPrincipal)
             .statusBarsPadding()
-            .padding(top = 8.dp, bottom = 18.dp)
+            .height(112.dp)
+            .padding(horizontal = 20.dp)
     ) {
+        // Título y notificaciones
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+                .height(48.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -203,20 +207,22 @@ private fun EncabezadoConfiguracion(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = "Notificaciones",
                     tint = Color.White,
-                    modifier = Modifier.size(27.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }
 
+        // Foto y saludo del usuario
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 28.dp, end = 20.dp, top = 12.dp),
+                .weight(1f)
+                .padding(bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(58.dp)
+                    .size(46.dp)
                     .clip(CircleShape)
                     .background(Color(0xFF3989EC)),
                 contentAlignment = Alignment.Center
@@ -224,48 +230,26 @@ private fun EncabezadoConfiguracion(
                 Text(
                     text = "M",
                     color = Color.White,
-                    fontSize = 28.sp,
+                    fontSize = 23.sp,
                     fontWeight = FontWeight.Medium
                 )
             }
 
-            Spacer(Modifier.width(13.dp))
+            Spacer(Modifier.width(12.dp))
 
-            Text(
-                text = "Hola, Marely",
-                color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
-
-            Surface(
-                color = Color.White,
-                shape = RoundedCornerShape(30.dp),
-                shadowElevation = 3.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(
-                        horizontal = 11.dp,
-                        vertical = 8.dp
-                    ),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("🐋", fontSize = 19.sp)
-
-                    Spacer(Modifier.width(6.dp))
-
-                    Text(
-                        text = "Nivel",
-                        color = AzulPrincipal,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+            Column {
+                Text(
+                    text = "Hola, Marely",
+                    color = Color.White,
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
 }
+
+
 
 @Composable
 private fun TituloSeccionConfiguracion(

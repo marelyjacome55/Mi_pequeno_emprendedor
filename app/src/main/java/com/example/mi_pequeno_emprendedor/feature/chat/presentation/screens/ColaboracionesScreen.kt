@@ -204,6 +204,7 @@ fun ColaboracionesScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Fondo,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             NavegacionInferior(
                 seccionSeleccionada = "Colaboraciones",
@@ -479,7 +480,7 @@ fun ColaboracionesScreen(
                         item(key = "titulo_todos") {
                             Text(
                                 "Todos los chats",
-                                color = TextoPrincipal,
+                                color = AzulPrincipal,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(
@@ -666,6 +667,7 @@ fun ColaboracionesScreen(
     }
 }
 
+
 @Composable
 private fun EncabezadoColaboraciones(
     alAbrirMenu: () -> Unit,
@@ -675,56 +677,35 @@ private fun EncabezadoColaboraciones(
         modifier = Modifier
             .fillMaxWidth()
             .background(AzulPrincipal)
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(top = 2.dp, bottom = 10.dp)
+            .statusBarsPadding()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+                .height(48.dp)
+                .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Colaboraciones",
+                text = "Colaboraciones",
                 color = Color.White,
-                fontSize = 25.sp,
+                fontSize = 21.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
 
             IconButton(onClick = alAbrirNotificaciones) {
                 Icon(
-                    Icons.Default.Notifications,
+                    imageVector = Icons.Default.Notifications,
                     contentDescription = "Notificaciones",
-                    tint = Color.White
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.End
-        ) {
-            Surface(
-                color = Color.White,
-                shape = RoundedCornerShape(30.dp)
-            ) {
-                Text(
-                    "🐬 Nivel Beluga",
-                    modifier = Modifier.padding(
-                        horizontal = 15.dp,
-                        vertical = 5.dp
-                    ),
-                    color = AzulPrincipal,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
+                    tint = Color.White,
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }
     }
 }
+
 
 @Composable
 private fun PestanaColaboraciones(
