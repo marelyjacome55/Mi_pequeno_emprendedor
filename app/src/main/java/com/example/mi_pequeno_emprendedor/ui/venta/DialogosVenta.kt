@@ -155,7 +155,7 @@ internal fun TicketDialog(
     total: Int,
     nombreNegocio: String,
     metodoPago: String,
-    montoRecibido: Int?,
+    montoRecibidoCentavos: Int?,
     pagoExacto: Boolean,
     onCerrar: () -> Unit
 ) {
@@ -172,7 +172,7 @@ internal fun TicketDialog(
         total = total,
         nombreNegocio = nombreNegocio,
         metodoPago = metodoPago,
-        montoRecibido = montoRecibido,
+        montoRecibidoCentavos = montoRecibidoCentavos,
         pagoExacto = pagoExacto,
         fecha = fecha,
         hora = hora,
@@ -314,8 +314,8 @@ internal fun TicketDialog(
                                 FilaTexto("Monto recibido", "Pago exacto")
                                 FilaTexto("Cambio", precio(0))
                             } else {
-                                FilaTexto("Monto recibido", montoRecibido?.let { precio(it) } ?: "—")
-                                FilaTexto("Cambio", montoRecibido?.let { precio(it - total) } ?: "—")
+                                FilaTexto("Monto recibido", montoRecibidoCentavos?.let { precioCentavos(it) } ?: "—")
+                                FilaTexto("Cambio", montoRecibidoCentavos?.let { precioCentavos(it - total * 100) } ?: "—")
                             }
                             Spacer(Modifier.height(10.dp))
                             Text(
@@ -496,6 +496,12 @@ private fun precio(valor: Int): String {
     return signo + "$" + String.format(Locale.US, "%.2f", kotlin.math.abs(valor).toDouble())
 }
 
+private fun precioCentavos(centavos: Int): String {
+    val signo = if (centavos < 0) "-" else ""
+    val absoluto = kotlin.math.abs(centavos)
+    return signo + "$" + String.format(Locale.US, "%d.%02d", absoluto / 100, absoluto % 100)
+}
+
 @Composable
 internal fun IconoBasura(
     color: Color = LocalContentColor.current,
@@ -639,9 +645,83 @@ internal fun DialogoEfectivo(
     onConfirmar: (Int) -> Unit,
     onVerTicket: (Int) -> Unit
 ) {
-    var monto by rememberSaveable { mutableStateOf(0) }
-    val cambio = monto - total
-    val suficiente = monto >= total
+    var pesos by rememberSaveable { mutableStateOf(0) }
+    var centavos by rememberSaveable { mutableStateOf(0) }
+    var enCentavos by rememberSaveable { mutableStateOf(false) }
+    var digitosCentavos by rememberSaveable { mutableStateOf(0) }
+    var entradaNueva by rememberSaveable { mutableStateOf(false) }
+    var prefijoPreset by rememberSaveable { mutableStateOf("") }
+    var longitudPreset by rememberSaveable { mutableStateOf(0) }
+    var digitosNuevos by rememberSaveable { mutableStateOf("") }
+
+    val montoCentavos = pesos * 100 + centavos
+    val cambio = montoCentavos - total * 100
+    val suficiente = montoCentavos >= total * 100
+
+    fun presionarDigito(digito: Int) {
+        if (enCentavos) {
+            when (digitosCentavos) {
+                0 -> {
+                    centavos = digito * 10
+                    digitosCentavos = 1
+                }
+                1 -> {
+                    centavos += digito
+                    digitosCentavos = 2
+                }
+            }
+        } else if (entradaNueva) {
+            digitosNuevos += digito
+            var texto = prefijoPreset + digitosNuevos
+            while (texto.length < longitudPreset) texto += "0"
+            pesos = texto.toIntOrNull()?.coerceAtMost(9_999_999) ?: pesos
+        } else {
+            pesos = (pesos * 10 + digito).coerceAtMost(9_999_999)
+        }
+    }
+
+    fun borrar() {
+        if (enCentavos) {
+            when (digitosCentavos) {
+                2 -> {
+                    centavos = (centavos / 10) * 10
+                    digitosCentavos = 1
+                }
+                1 -> {
+                    centavos = 0
+                    digitosCentavos = 0
+                    enCentavos = false
+                }
+                else -> enCentavos = false
+            }
+        } else if (entradaNueva) {
+            if (digitosNuevos.isNotEmpty()) {
+                digitosNuevos = digitosNuevos.dropLast(1)
+                var texto = prefijoPreset + digitosNuevos
+                while (texto.length < longitudPreset) texto += "0"
+                pesos = texto.toIntOrNull() ?: 0
+            } else {
+                pesos = 0
+                entradaNueva = false
+                prefijoPreset = ""
+                longitudPreset = 0
+            }
+        } else {
+            pesos /= 10
+        }
+    }
+
+    fun elegirPreset(valor: Int) {
+        pesos = valor
+        centavos = 0
+        enCentavos = false
+        digitosCentavos = 0
+        entradaNueva = true
+        val texto = valor.toString()
+        prefijoPreset = texto.first().toString()
+        longitudPreset = texto.length
+        digitosNuevos = ""
+    }
 
     Dialog(
         onDismissRequest = onCerrar,
@@ -654,7 +734,7 @@ internal fun DialogoEfectivo(
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BotonTicketCirculo { onVerTicket(monto) }
+                    BotonTicket { onVerTicket(montoCentavos) }
                     Text(
                         "Ingresar efectivo",
                         style = MaterialTheme.typography.titleLarge,
@@ -719,7 +799,7 @@ internal fun DialogoEfectivo(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            String.format(Locale.US, "%.2f", monto.toDouble()),
+                            String.format(Locale.US, "%d.%02d", pesos, centavos),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = TextoPrincipal,
@@ -731,7 +811,7 @@ internal fun DialogoEfectivo(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(50, 100, 200, 500).forEach { valor ->
-                        val activo = monto == valor
+                        val activo = pesos == valor && centavos == 0
                         Surface(
                             shape = RoundedCornerShape(10.dp),
                             color = if (activo) AzulEtiqueta else Color.White,
@@ -739,7 +819,7 @@ internal fun DialogoEfectivo(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(38.dp)
-                                .clickable { monto = valor }
+                                .clickable { elegirPreset(valor) }
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
@@ -764,9 +844,7 @@ internal fun DialogoEfectivo(
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             fila.forEach { digito ->
                                 Tecla(
-                                    onClick = {
-                                        monto = (monto * 10 + digito.toInt()).coerceAtMost(9_999_999)
-                                    },
+                                    onClick = { presionarDigito(digito.toInt()) },
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Text(
@@ -780,9 +858,24 @@ internal fun DialogoEfectivo(
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Spacer(Modifier.weight(1f))
                         Tecla(
-                            onClick = { monto = (monto * 10).coerceAtMost(9_999_999) },
+                            onClick = {
+                                if (!enCentavos) {
+                                    enCentavos = true
+                                    entradaNueva = false
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                ".",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = AzulTexto
+                            )
+                        }
+                        Tecla(
+                            onClick = { presionarDigito(0) },
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(
@@ -793,7 +886,7 @@ internal fun DialogoEfectivo(
                             )
                         }
                         Tecla(
-                            onClick = { monto /= 10 },
+                            onClick = { borrar() },
                             modifier = Modifier.weight(1f)
                         ) {
                             IconoBorrar(color = AzulTexto, modifier = Modifier.size(22.dp))
@@ -821,7 +914,7 @@ internal fun DialogoEfectivo(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            precio(cambio),
+                            precioCentavos(cambio),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = if (suficiente) VerdeTexto else RojoTexto
@@ -843,7 +936,7 @@ internal fun DialogoEfectivo(
                         Text("Cancelar", fontWeight = FontWeight.SemiBold)
                     }
                     Button(
-                        onClick = { onConfirmar(monto) },
+                        onClick = { onConfirmar(montoCentavos) },
                         enabled = suficiente,
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AzulBotones),
@@ -860,16 +953,19 @@ internal fun DialogoEfectivo(
 }
 
 @Composable
-private fun BotonTicketCirculo(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(AzulEtiqueta)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+private fun BotonTicket(onClick: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = AzulEtiqueta,
+        modifier = Modifier.clickable(onClick = onClick)
     ) {
-        IconoTicket(color = AzulBotones, modifier = Modifier.size(20.dp))
+        Text(
+            "Ticket",
+            color = AzulBotones,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+        )
     }
 }
 
@@ -1029,7 +1125,7 @@ internal fun DialogoConfirmarVenta(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    BotonTicketCirculo(onClick = onVerTicket)
+                    BotonTicket(onClick = onVerTicket)
                     Spacer(Modifier.weight(1f))
                     IconButton(onClick = onCerrar) {
                         Text("✕", color = TextoSecundario, style = MaterialTheme.typography.titleLarge)

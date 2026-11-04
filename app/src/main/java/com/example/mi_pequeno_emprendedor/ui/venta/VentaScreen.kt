@@ -1,5 +1,10 @@
 package com.example.mi_pequeno_emprendedor.ui.venta
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -35,6 +40,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +72,7 @@ import com.example.mi_pequeno_emprendedor.ui.theme.TextoSecundario
 import com.example.mi_pequeno_emprendedor.ui.theme.VerdeBotones
 import com.example.mi_pequeno_emprendedor.ui.theme.VerdeEtiqueta
 import com.example.mi_pequeno_emprendedor.ui.theme.VerdeTexto
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 private data class ProductoDemo(val nombre: String, val detalle: String, val precio: Int)
@@ -105,7 +112,8 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
     var metodoConfirmando by remember { mutableStateOf<String?>(null) }
     var metodoPago by rememberSaveable { mutableStateOf("Efectivo") }
     var pagoExacto by rememberSaveable { mutableStateOf(false) }
-    var montoRecibido by remember { mutableStateOf<Int?>(null) }
+    var montoRecibidoCentavos by remember { mutableStateOf<Int?>(null) }
+    var mostrarExito by rememberSaveable { mutableStateOf(false) }
     val cantidades = remember { mutableStateMapOf<String, Int>() }
 
     val productos = remember(filtro) {
@@ -115,6 +123,18 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
         (productosDemo.find { it.nombre == nombre }?.precio ?: 0) * cantidad
     }
 
+    LaunchedEffect(total) {
+        if (total <= 0) mostrarMetodoPago = false
+    }
+
+    LaunchedEffect(mostrarExito) {
+        if (mostrarExito) {
+            delay(2500)
+            mostrarExito = false
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -316,7 +336,7 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
                 }
                 Button(
                     onClick = { mostrarMetodoPago = true },
-                    enabled = cantidades.isNotEmpty(),
+                    enabled = cantidades.isNotEmpty() && total > 0,
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = VerdeBotones,
@@ -330,6 +350,31 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
                 ) {
                     Text("Continuar", fontWeight = FontWeight.SemiBold)
                 }
+            }
+        }
+    }
+
+        AnimatedVisibility(
+            visible = mostrarExito,
+            enter = fadeIn() + slideInVertically { -it },
+            exit = fadeOut() + slideOutVertically { -it },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(top = 8.dp)
+        ) {
+            Surface(
+                color = VerdeBotones,
+                shape = RoundedCornerShape(50),
+                shadowElevation = 6.dp
+            ) {
+                Text(
+                    "Venta realizada con éxito",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
+                )
             }
         }
     }
@@ -350,17 +395,18 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
             onCerrar = { mostrarEfectivo = false },
             onConfirmar = { monto ->
                 // shortcut: la venta aún no se guarda en Supabase; solo se limpia la cola
-                montoRecibido = monto
+                montoRecibidoCentavos = monto
                 metodoPago = "Efectivo"
-                pagoExacto = monto == total
+                pagoExacto = monto == total * 100
                 cantidades.clear()
                 mostrarEfectivo = false
                 mostrarMetodoPago = false
+                mostrarExito = true
             },
             onVerTicket = { monto ->
-                montoRecibido = monto
+                montoRecibidoCentavos = monto
                 metodoPago = "Efectivo"
-                pagoExacto = monto == total
+                pagoExacto = monto == total * 100
                 mostrarTicket = true
             }
         )
@@ -371,15 +417,16 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
             metodo = metodo,
             onCerrar = { metodoConfirmando = null },
             onConfirmar = {
-                montoRecibido = total
+                montoRecibidoCentavos = total * 100
                 metodoPago = metodo
                 pagoExacto = true
                 cantidades.clear()
                 metodoConfirmando = null
                 mostrarMetodoPago = false
+                mostrarExito = true
             },
             onVerTicket = {
-                montoRecibido = total
+                montoRecibidoCentavos = total * 100
                 metodoPago = metodo
                 pagoExacto = true
                 mostrarTicket = true
@@ -397,7 +444,7 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
             total = total,
             nombreNegocio = NOMBRE_NEGOCIO,
             metodoPago = metodoPago,
-            montoRecibido = montoRecibido,
+            montoRecibidoCentavos = montoRecibidoCentavos,
             pagoExacto = pagoExacto,
             onCerrar = { mostrarTicket = false }
         )

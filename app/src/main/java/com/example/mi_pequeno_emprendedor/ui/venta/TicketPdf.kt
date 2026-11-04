@@ -21,7 +21,7 @@ internal data class DatosTicketPdf(
     val total: Int,
     val nombreNegocio: String,
     val metodoPago: String,
-    val montoRecibido: Int?,
+    val montoRecibidoCentavos: Int?,
     val pagoExacto: Boolean,
     val fecha: String,
     val hora: String,
@@ -179,10 +179,10 @@ internal object TicketPdf {
             escribir(precio(0), derecha, der)
         } else {
             escribir("Monto recibido", MARGEN, izq)
-            escribir(ticket.montoRecibido?.let { precio(it) } ?: "—", derecha, der)
+            escribir(ticket.montoRecibidoCentavos?.let { precioCentavos(it) } ?: "—", derecha, der)
             lienzo.y += 16f
             escribir("Cambio", MARGEN, izq)
-            escribir(ticket.montoRecibido?.let { precio(it - ticket.total) } ?: "—", derecha, der)
+            escribir(ticket.montoRecibidoCentavos?.let { precioCentavos(it - ticket.total * 100) } ?: "—", derecha, der)
         }
         lienzo.y += 30f
 
@@ -242,6 +242,12 @@ internal object TicketPdf {
     private fun precio(valor: Int): String {
         val signo = if (valor < 0) "-" else ""
         return signo + "$" + String.format(Locale.US, "%.2f", kotlin.math.abs(valor).toDouble())
+    }
+
+    private fun precioCentavos(centavos: Int): String {
+        val signo = if (centavos < 0) "-" else ""
+        val absoluto = kotlin.math.abs(centavos)
+        return signo + "$" + String.format(Locale.US, "%d.%02d", absoluto / 100, absoluto % 100)
     }
 
     private const val AZUL_TEXTO = 0xFF0808AE.toInt()
