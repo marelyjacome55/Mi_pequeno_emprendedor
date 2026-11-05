@@ -1,6 +1,10 @@
 
 package com.example.mi_pequeno_emprendedor
 
+import com.example.mi_pequeno_emprendedor.feature.configuracion.presentation.screens.SeguridadScreen
+import com.example.mi_pequeno_emprendedor.feature.configuracion.presentation.screens.NotificacionesScreen
+import com.example.mi_pequeno_emprendedor.feature.configuracion.presentation.screens.DatosPersonalesScreen
+import com.example.mi_pequeno_emprendedor.feature.configuracion.presentation.screens.InformacionNegocioScreen
 import com.example.mi_pequeno_emprendedor.feature.configuracion.presentation.screens.AyudaSoporteScreen
 import com.example.mi_pequeno_emprendedor.feature.configuracion.presentation.screens.TerminosPrivacidadScreen
 import android.os.Bundle
@@ -97,6 +101,53 @@ class MainActivity : ComponentActivity() {
                         opcionActual != null -> {
 
                             when (opcionActual) {
+                                "Datos personales" -> {
+                                    DatosPersonalesScreen(
+                                        alVolver = {
+                                            opcionConfiguracion = null
+                                        },
+                                        alCambiarSeccion = { seccion ->
+                                            opcionConfiguracion = null
+                                            seccionActual = seccion
+                                        }
+                                    )
+                                }
+
+                                "Información del negocio" -> {
+                                    InformacionNegocioScreen(
+                                        alVolver = {
+                                            opcionConfiguracion = null
+                                        },
+                                        alCambiarSeccion = { seccion ->
+                                            opcionConfiguracion = null
+                                            seccionActual = seccion
+                                        }
+                                    )
+                                }
+
+                                "Seguridad" -> {
+                                    SeguridadScreen(
+                                        alVolver = {
+                                            opcionConfiguracion = null
+                                        },
+                                        alCambiarSeccion = { seccion ->
+                                            opcionConfiguracion = null
+                                            seccionActual = seccion
+                                        }
+                                    )
+                                }
+
+                                "Notificaciones" -> {
+                                    NotificacionesScreen(
+                                        alVolver = {
+                                            opcionConfiguracion = null
+                                        },
+                                        alCambiarSeccion = { seccion ->
+                                            opcionConfiguracion = null
+                                            seccionActual = seccion
+                                        }
+                                    )
+                                }
 
                                 "Ayuda y soporte" -> {
                                     AyudaSoporteScreen(
