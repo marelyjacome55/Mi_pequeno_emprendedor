@@ -74,6 +74,15 @@ class RegistroViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(cargando = true, errores = ErroresRegistro(), errorGeneral = null) }
             try {
+                if (!repositorio.nicknameDisponible(estado.nickname.trim())) {
+                    _uiState.update {
+                        it.copy(
+                            cargando = false,
+                            errores = it.errores.copy(nickname = "Ese nickname ya está en uso, elige otro")
+                        )
+                    }
+                    return@launch
+                }
                 val conSesion = repositorio.registrar(
                     correo = estado.email.trim(),
                     contrasena = estado.password,

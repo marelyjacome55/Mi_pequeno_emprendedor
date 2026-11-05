@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.mi_pequeno_emprendedor.ui.login.LoginScreen
 import com.example.mi_pequeno_emprendedor.ui.registro.RegistroScreen
 import com.example.mi_pequeno_emprendedor.ui.venta.VentaScreen
 
@@ -17,12 +18,22 @@ import com.example.mi_pequeno_emprendedor.ui.venta.VentaScreen
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "venta") {
+    NavHost(navController = navController, startDestination = "login") {
+        composable("login") {
+            LoginScreen(
+                onIniciado = {
+                    navController.navigate("inicio") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onRegistrarse = { navController.navigate("registro") }
+            )
+        }
         composable("registro") {
             RegistroScreen(
                 onRegistrado = {
                     navController.navigate("inicio") {
-                        popUpTo("registro") { inclusive = true }
+                        popUpTo("login") { inclusive = true }
                     }
                 }
             )

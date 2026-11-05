@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mi_pequeno_emprendedor.ui.components.Campo
 import com.example.mi_pequeno_emprendedor.ui.theme.AzulBotones
 import com.example.mi_pequeno_emprendedor.ui.theme.AzulEtiqueta
 import com.example.mi_pequeno_emprendedor.ui.theme.AzulHeader
@@ -231,59 +232,5 @@ private fun Aviso(mensaje: String, fondo: Color, texto: Color) {
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(12.dp)
         )
-    }
-}
-
-@Composable
-private fun Campo(
-    etiqueta: String,
-    valor: String,
-    error: String?,
-    onValorChange: (String) -> Unit,
-    teclado: KeyboardType = KeyboardType.Text,
-    esPassword: Boolean = false,
-    readOnly: Boolean = false,
-    trailing: (@Composable () -> Unit)? = null,
-    onClick: (() -> Unit)? = null
-) {
-    val colores = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = TextoPrincipal,
-        unfocusedTextColor = TextoPrincipal,
-        cursorColor = AzulBotones,
-        focusedBorderColor = AzulBotones,
-        unfocusedBorderColor = BordeCampo,
-        focusedLabelColor = AzulBotones,
-        unfocusedLabelColor = TextoSecundario,
-        focusedContainerColor = Color.White,
-        unfocusedContainerColor = Color.White,
-        errorContainerColor = Color.White,
-        errorBorderColor = RojoTexto,
-        errorLabelColor = RojoTexto,
-        errorSupportingTextColor = RojoTexto
-    )
-
-    Box(modifier = Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = valor,
-            onValueChange = onValorChange,
-            label = { Text(etiqueta) },
-            isError = error != null,
-            supportingText = error?.let { { Text(it) } },
-            keyboardOptions = KeyboardOptions(keyboardType = teclado),
-            visualTransformation = if (esPassword) PasswordVisualTransformation() else VisualTransformation.None,
-            trailingIcon = trailing,
-            readOnly = readOnly,
-            singleLine = true,
-            shape = RoundedCornerShape(14.dp),
-            colors = colores,
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (onClick != null) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clickable(onClick = onClick)
-            )
-        }
     }
 }

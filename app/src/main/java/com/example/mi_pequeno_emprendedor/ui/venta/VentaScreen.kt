@@ -253,7 +253,7 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
                 IconoInfo()
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "2 toques resta 1 · Mantener elimina todo",
+                    "1 toques resta 1 · Mantener elimina todo",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextoSecundario,
                     maxLines = 2,
@@ -280,9 +280,6 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
                                 ChipSeleccionado(
                                     producto = producto,
                                     cantidad = cantidad,
-                                    onAgregar = {
-                                        cantidades[producto.nombre] = (cantidades[producto.nombre] ?: 0) + 1
-                                    },
                                     onRestar = {
                                         val actual = cantidades[producto.nombre] ?: 0
                                         if (actual <= 1) cantidades.remove(producto.nombre)
@@ -580,7 +577,6 @@ private fun TarjetaProducto(
 private fun ChipSeleccionado(
     producto: ProductoDemo,
     cantidad: Int,
-    onAgregar: () -> Unit,
     onRestar: () -> Unit,
     onEliminar: () -> Unit
 ) {
@@ -590,8 +586,7 @@ private fun ChipSeleccionado(
             color = Color.White,
             border = BorderStroke(1.dp, BordeCampo),
             modifier = Modifier.combinedClickable(
-                onClick = onAgregar,
-                onDoubleClick = onRestar,
+                onClick = onRestar,
                 onLongClick = onEliminar
             )
         ) {
