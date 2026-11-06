@@ -1,5 +1,6 @@
 package com.example.mi_pequeno_emprendedor.ui.venta
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,14 +34,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,10 +59,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mi_pequeno_emprendedor.data.venta.ItemVenta
+import com.example.mi_pequeno_emprendedor.data.venta.ProductoVenta
 import com.example.mi_pequeno_emprendedor.ui.theme.AzulBotones
 import com.example.mi_pequeno_emprendedor.ui.theme.AzulEtiqueta
 import com.example.mi_pequeno_emprendedor.ui.theme.AzulHeader
@@ -75,33 +83,10 @@ import com.example.mi_pequeno_emprendedor.ui.theme.VerdeTexto
 import kotlinx.coroutines.delay
 import java.util.Locale
 
-private data class ProductoDemo(val nombre: String, val detalle: String, val precio: Int)
-
-private const val NOMBRE_NEGOCIO = "Tiendita Sol"
-
-private val productosDemo = listOf(
-    ProductoDemo("Coca-Cola", "600 ml", 20),
-    ProductoDemo("Sabritas", "Original", 18),
-    ProductoDemo("Agua Ciel", "600 ml", 12),
-    ProductoDemo("Galletas Marías", "170 g", 6),
-    ProductoDemo("Churritos", "46 g", 10),
-    ProductoDemo("Gomitas enchiladas", "100 g", 8),
-    ProductoDemo("Pan dulce", "1 pieza", 8),
-    ProductoDemo("Jugo de naranja", "1 L", 20),
-    ProductoDemo("Yogurt", "900 g", 25),
-    ProductoDemo("Cacahuates", "150 g", 12),
-    ProductoDemo("Chocolate", "40 g", 18),
-    ProductoDemo("Paletas", "1 pieza", 7),
-    ProductoDemo("Café molido", "250 g", 35),
-    ProductoDemo("Leche", "1 L", 24),
-    ProductoDemo("Pilas AA", "2 piezas", 30),
-    ProductoDemo("Encendedor", "1 pieza", 10),
-    ProductoDemo("Galletas de chocolate", "120 g", 15),
-    ProductoDemo("Agua mineral", "600 ml", 14)
-)
-
 @Composable
-fun VentaScreen(onCerrar: () -> Unit = {}) {
+fun VentaScreen(onCerrar: () -> Unit = {}, viewModel: VentaViewModel = viewModel()) {
+    val db by viewModel.uiState.collectAsState()
+    val contexto = LocalContext.current
     var textoBusqueda by rememberSaveable { mutableStateOf("") }
     var filtro by rememberSaveable { mutableStateOf("") }
     var mostrarBusqueda by rememberSaveable { mutableStateOf(false) }
@@ -114,13 +99,19 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
     var pagoExacto by rememberSaveable { mutableStateOf(false) }
     var montoRecibidoCentavos by remember { mutableStateOf<Int?>(null) }
     var mostrarExito by rememberSaveable { mutableStateOf(false) }
-    val cantidades = remember { mutableStateMapOf<String, Int>() }
+    var mostrarError by rememberSaveable { mutableStateOf(false) }
+    val cantidades = remember { mutableStateMapOf<Long, Int>() }
 
-    val productos = remember(filtro) {
-        productosDemo.filter { it.nombre.contains(filtro.trim(), ignoreCase = true) }
+    val productos = remember(db.productos, filtro) {
+        db.productos.filter { it.nombre.contains(filtro.trim(), ignoreCase = true) }
     }
-    val total = cantidades.entries.sumOf { (nombre, cantidad) ->
-        (productosDemo.find { it.nombre == nombre }?.precio ?: 0) * cantidad
+    val total = cantidades.entries.sumOf { (id, cantidad) ->
+        (db.productos.find { it.id == id }?.precio ?: 0) * cantidad
+    }
+    val itemsVenta = cantidades.mapNotNull { (id, cantidad) ->
+        db.productos.find { it.id == id }?.let { producto ->
+            ItemVenta(producto.id, producto.nombre, producto.precio, cantidad)
+        }
     }
 
     LaunchedEffect(total) {
@@ -131,6 +122,35 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
         if (mostrarExito) {
             delay(2500)
             mostrarExito = false
+        }
+    }
+
+    LaunchedEffect(db.ventaExitosa) {
+        if (db.ventaExitosa) {
+            cantidades.clear()
+            mostrarEfectivo = false
+            metodoConfirmando = null
+            mostrarMetodoPago = false
+            mostrarExito = true
+            viewModel.consumirVentaExitosa()
+            viewModel.cargarProductos()
+        }
+    }
+
+    LaunchedEffect(db.errorVenta) {
+        db.errorVenta?.let { mensaje ->
+            Toast.makeText(contexto, mensaje, Toast.LENGTH_LONG).show()
+            mostrarEfectivo = false
+            metodoConfirmando = null
+            mostrarError = true
+            viewModel.consumirErrorVenta()
+        }
+    }
+
+    LaunchedEffect(mostrarError) {
+        if (mostrarError) {
+            delay(2500)
+            mostrarError = false
         }
     }
 
@@ -212,12 +232,34 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
                 .weight(0.45f)
                 .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
         ) {
-            if (productos.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay productos que coincidan", color = TextoSecundario)
+            when {
+                db.cargando -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = AzulBotones)
                 }
-            } else {
-                LazyVerticalGrid(
+                db.error != null -> Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(db.error!!, color = TextoSecundario)
+                    TextButton(onClick = viewModel::cargarProductos) {
+                        Text("Reintentar", color = AzulBotones)
+                    }
+                }
+                productos.isEmpty() -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        if (db.productos.isEmpty()) "No hay productos en tu inventario"
+                        else "No hay productos que coincidan",
+                        color = TextoSecundario
+                    )
+                }
+                else -> LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(12.dp),
@@ -228,9 +270,9 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
                         TarjetaProducto(
                             producto = producto,
                             onAgregar = {
-                                cantidades[producto.nombre] = (cantidades[producto.nombre] ?: 0) + 1
+                                cantidades[producto.id] = (cantidades[producto.id] ?: 0) + 1
                             },
-                            onEliminar = { cantidades.remove(producto.nombre) }
+                            onEliminar = { cantidades.remove(producto.id) }
                         )
                     }
                 }
@@ -253,7 +295,7 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
                 IconoInfo()
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "1 toques resta 1 · Mantener elimina todo",
+                    "1 toque resta 1 · Mantener elimina todo",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextoSecundario,
                     maxLines = 2,
@@ -274,18 +316,18 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
                         modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        cantidades.forEach { (nombre, cantidad) ->
-                            val producto = productosDemo.find { it.nombre == nombre } ?: return@forEach
+                        cantidades.forEach { (id, cantidad) ->
+                            val producto = db.productos.find { it.id == id } ?: return@forEach
                             item {
                                 ChipSeleccionado(
                                     producto = producto,
                                     cantidad = cantidad,
                                     onRestar = {
-                                        val actual = cantidades[producto.nombre] ?: 0
-                                        if (actual <= 1) cantidades.remove(producto.nombre)
-                                        else cantidades[producto.nombre] = actual - 1
+                                        val actual = cantidades[producto.id] ?: 0
+                                        if (actual <= 1) cantidades.remove(producto.id)
+                                        else cantidades[producto.id] = actual - 1
                                     },
-                                    onEliminar = { cantidades.remove(producto.nombre) }
+                                    onEliminar = { cantidades.remove(producto.id) }
                                 )
                             }
                         }
@@ -374,6 +416,30 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
                 )
             }
         }
+
+        AnimatedVisibility(
+            visible = mostrarError,
+            enter = fadeIn() + slideInVertically { -it },
+            exit = fadeOut() + slideOutVertically { -it },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(top = 8.dp)
+        ) {
+            Surface(
+                color = RojoBotones,
+                shape = RoundedCornerShape(50),
+                shadowElevation = 6.dp
+            ) {
+                Text(
+                    "No se pudo registrar la venta",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
+                )
+            }
+        }
     }
 
     if (mostrarConfirmarEliminar) {
@@ -391,14 +457,15 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
             total = total,
             onCerrar = { mostrarEfectivo = false },
             onConfirmar = { monto ->
-                // shortcut: la venta aún no se guarda en Supabase; solo se limpia la cola
                 montoRecibidoCentavos = monto
                 metodoPago = "Efectivo"
                 pagoExacto = monto == total * 100
-                cantidades.clear()
-                mostrarEfectivo = false
-                mostrarMetodoPago = false
-                mostrarExito = true
+                viewModel.registrarVenta(
+                    items = itemsVenta,
+                    metodo = "Efectivo",
+                    efectivoCentavos = monto,
+                    cambioCentavos = monto - total * 100
+                )
             },
             onVerTicket = { monto ->
                 montoRecibidoCentavos = monto
@@ -417,10 +484,12 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
                 montoRecibidoCentavos = total * 100
                 metodoPago = metodo
                 pagoExacto = true
-                cantidades.clear()
-                metodoConfirmando = null
-                mostrarMetodoPago = false
-                mostrarExito = true
+                viewModel.registrarVenta(
+                    items = itemsVenta,
+                    metodo = metodo,
+                    efectivoCentavos = total * 100,
+                    cambioCentavos = 0
+                )
             },
             onVerTicket = {
                 montoRecibidoCentavos = total * 100
@@ -433,13 +502,13 @@ fun VentaScreen(onCerrar: () -> Unit = {}) {
 
     if (mostrarTicket) {
         TicketDialog(
-            items = cantidades.entries.mapNotNull { (nombre, cantidad) ->
-                productosDemo.find { it.nombre == nombre }?.let { producto ->
+            items = cantidades.entries.mapNotNull { (id, cantidad) ->
+                db.productos.find { it.id == id }?.let { producto ->
                     ItemTicket(producto.nombre, producto.detalle, cantidad, producto.precio)
                 }
             },
             total = total,
-            nombreNegocio = NOMBRE_NEGOCIO,
+            nombreNegocio = db.nombreNegocio,
             metodoPago = metodoPago,
             montoRecibidoCentavos = montoRecibidoCentavos,
             pagoExacto = pagoExacto,
@@ -535,7 +604,7 @@ private fun IconoInfo() {
 
 @Composable
 private fun TarjetaProducto(
-    producto: ProductoDemo,
+    producto: ProductoVenta,
     onAgregar: () -> Unit,
     onEliminar: () -> Unit
 ) {
@@ -575,7 +644,7 @@ private fun TarjetaProducto(
 
 @Composable
 private fun ChipSeleccionado(
-    producto: ProductoDemo,
+    producto: ProductoVenta,
     cantidad: Int,
     onRestar: () -> Unit,
     onEliminar: () -> Unit
