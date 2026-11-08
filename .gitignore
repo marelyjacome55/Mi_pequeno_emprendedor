@@ -13,4 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
-.opencode/
+.opencode/.idea/
+.kotlin/
+.vscode/
+build/

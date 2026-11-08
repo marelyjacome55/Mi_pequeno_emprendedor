@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -18,6 +19,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.mi_pequeno_emprendedor.feature.beluguia.presentation.screens.BeluguiaScreen
 import com.example.mi_pequeno_emprendedor.ui.components.NavegacionInferior
 import com.example.mi_pequeno_emprendedor.feature.chat.presentation.screens.ColaboracionesScreen
+
+import com.example.mi_pequeno_emprendedor.feature.beluguia.presentation.components.BeluguiaFloatingButton
 
 @Composable
 fun AppNavigation() {
@@ -72,10 +75,19 @@ fun AppNavigation() {
 
             // Rutas base de las pestañas principales
             composable("inicio") {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Button(onClick = { navController.navigate("beluguia") }) {
-                        Text("Ir a Belu-guIA 🐋")
-                    }
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Pantalla de Inicio")
+
+                    // Botón flotante arrastrable
+                    BeluguiaFloatingButton(
+                        onClick = { navController.navigate("beluguia") },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp)
+                    )
                 }
             }
             composable("estadisticas") {
