@@ -20,6 +20,19 @@ data class ChatDto(
     val tipo: String? = null
 )
 
+
+@Serializable
+private data class ParametrosCrearChat(
+    @SerialName("p_nombre")
+    val nombre: String,
+
+    @SerialName("p_tipo")
+    val tipo: String,
+
+    @SerialName("p_integrantes")
+    val integrantes: List<Long>
+)
+
 @Serializable
 data class UsuarioChatDto(
     @SerialName("Usuario_id")
@@ -56,14 +69,6 @@ data class MensajeDto(
     val chatId: Long? = null,
     @SerialName("Usuario_id")
     val usuarioId: Long? = null
-)
-
-@Serializable
-private data class ParametrosCrearChat(
-    @SerialName("p_usuario_destino")
-    val usuarioDestino: Long,
-    @SerialName("p_nombre")
-    val nombre: String
 )
 
 @Serializable
@@ -208,74 +213,93 @@ class ChatRepository {
             }
     }
 
+
     suspend fun buscarUsuarios(texto: String): List<UsuarioChatDto> {
         val usuarioActualId = obtenerUsuarioActualId()
+
+        android.util.Log.d("ChatRepository", "Usuario actual ID: $usuarioActualId")
+        android.util.Log.d("ChatRepository", "Texto de búsqueda: $texto")
 
         val usuarios = supabase
             .from("Usuario")
             .select()
             .decodeList<UsuarioChatDto>()
 
-        return usuarios.filter { usuario ->
-            usuario.usuarioId != usuarioActualId &&
-                    (
-                            usuario.nickName.orEmpty().contains(texto, ignoreCase = true) ||
-                                    usuario.usuarioId.toString().contains(texto) ||
-                                    usuario.nombre.contains(texto, ignoreCase = true) ||
-                                    usuario.apellidos.orEmpty().contains(texto, ignoreCase = true)
-                            )
-        }
-    }
-
-    suspend fun crearChatPrivado(
-        usuarioId: Long,
-        nombre: String
-    ): Long {
-        val usuarioActualId = obtenerUsuarioActualId()
-
-        require(usuarioId != usuarioActualId) {
-            "No puedes crear un chat contigo mismo."
-        }
-
-        val respuesta = supabase.postgrest.rpc(
-            function = "crear_chat_privado",
-            parameters = ParametrosCrearChat(
-                usuarioDestino = usuarioId,
-                nombre = nombre.trim().ifBlank { "Chat privado" }
-            )
+        android.util.Log.d(
+            "ChatRepository",
+            "Usuarios recibidos desde Supabase: ${usuarios.size}"
         )
 
-        return respuesta.decodeSingle<Long>()
-    }
-
-    suspend fun crearGrupo(
-        nombre: String,
-        integrantesSeleccionados: List<Long>
-    ): Long {
-        val usuarioActualId = obtenerUsuarioActualId()
-
-        val nuevoChat = supabase
-            .from("Chat")
-            .insert(
-                NuevoChatDto(nombre, "grupo")
-            ) {
-                select()
-            }
-            .decodeSingle<ChatDto>()
-
-        val usuarios = (integrantesSeleccionados + usuarioActualId).distinct()
-
-        val miembros = usuarios.map { usuarioId ->
-            NuevoIntegranteDto(
-                chatId = nuevoChat.chatId,
-                usuarioId = usuarioId,
-                esAdministrador = usuarioId == usuarioActualId
+        usuarios.forEach { usuario ->
+            android.util.Log.d(
+                "ChatRepository",
+                "Usuario: ID=${usuario.usuarioId}, " +
+                        "Nombre=${usuario.nombre}, " +
+                        "NickName=${usuario.nickName}, " +
+                        "Apellidos=${usuario.apellidos}"
             )
         }
 
-        supabase.from("Chat_Usuario").insert(miembros)
+        val resultados = usuarios.filter { usuario ->
+            usuario.usuarioId != usuarioActualId &&
+                    (
+                            usuario.nickName.orEmpty().contains(texto.trim(), ignoreCase = true) ||
+                                    usuario.usuarioId.toString().contains(texto.trim()) ||
+                                    usuario.nombre.contains(texto.trim(), ignoreCase = true) ||
+                                    usuario.apellidos.orEmpty().contains(texto.trim(), ignoreCase = true)
+                            )
+        }
 
-        return nuevoChat.chatId
+        android.util.Log.d(
+            "ChatRepository",
+            "Resultados encontrados: ${resultados.size}"
+        )
+
+        return resultados
+    }
+
+
+
+
+    suspend fun crearChat(
+        nombre: String,
+        tipo: String,
+        integrantesSeleccionados: List<Long>
+    ): Long {
+        require(tipo == "chat" || tipo == "grupo") {
+            "El tipo de conversación no es válido."
+        }
+
+        require(nombre.isNotBlank()) {
+            "El nombre de la conversación no puede estar vacío."
+        }
+
+        val usuarioActualId = obtenerUsuarioActualId()
+
+        val usuarios = (integrantesSeleccionados + usuarioActualId)
+            .distinct()
+
+        require(tipo != "chat" || usuarios.size == 2) {
+            "Un chat debe tener exactamente dos integrantes."
+        }
+
+        require(tipo != "grupo" || usuarios.size >= 2) {
+            "Un grupo necesita al menos otro integrante."
+        }
+
+        val otrosIntegrantes = usuarios.filter {
+            it != usuarioActualId
+        }
+
+        val parametros = ParametrosCrearChat(
+            nombre = nombre.trim(),
+            tipo = tipo,
+            integrantes = otrosIntegrantes
+        )
+
+        return supabase.postgrest
+            .rpc("crear_chat", parametros)
+            .decodeAs<Long>()
     }
 
     suspend fun obtenerMensajes(chatId: Long): List<MensajeDto> {

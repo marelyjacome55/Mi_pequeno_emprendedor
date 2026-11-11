@@ -10,7 +10,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -21,8 +20,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mi_pequeno_emprendedor.data.repository.UsuarioRepository
 import com.example.mi_pequeno_emprendedor.ui.components.NavegacionInferior
+import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
@@ -41,14 +43,17 @@ fun DatosPersonalesScreen(
     alCambiarSeccion: (String) -> Unit = {},
     alAbrirNotificaciones: () -> Unit = {}
 ) {
+    val repositorio = remember { UsuarioRepository() }
+    val scope = rememberCoroutineScope()
+
     // Información que se muestra en pantalla.
-    var nombre by rememberSaveable { mutableStateOf("Marely") }
+    var nombre by rememberSaveable { mutableStateOf("") }
     var apellidos by rememberSaveable { mutableStateOf("") }
     var nickname by rememberSaveable { mutableStateOf("") }
     var fechaNacimiento by rememberSaveable { mutableStateOf<Long?>(null) }
 
     // Información temporal para editar.
-    var nombreEdicion by rememberSaveable { mutableStateOf("Marely") }
+    var nombreEdicion by rememberSaveable { mutableStateOf("") }
     var apellidosEdicion by rememberSaveable { mutableStateOf("") }
     var nicknameEdicion by rememberSaveable { mutableStateOf("") }
     var fechaEdicion by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -58,6 +63,13 @@ fun DatosPersonalesScreen(
     var mostrarConfirmacion by remember { mutableStateOf(false) }
     var mostrarErrorNombre by remember { mutableStateOf(false) }
 
+    var cargando by remember { mutableStateOf(true) }
+    var guardando by remember { mutableStateOf(false) }
+
+    var tituloDialogo by remember { mutableStateOf("") }
+    var mensajeDialogo by remember { mutableStateOf("") }
+
+    // Convierte la fecha de milisegundos a texto.
     fun formatearFecha(fecha: Long?): String {
         return fecha?.let {
             Instant.ofEpochMilli(it)
@@ -65,6 +77,20 @@ fun DatosPersonalesScreen(
                 .toLocalDate()
                 .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
         } ?: "Sin registrar"
+    }
+
+    // Convierte la fecha de Supabase a milisegundos.
+    fun convertirFechaAMillis(fecha: String?): Long? {
+        if (fecha.isNullOrBlank()) return null
+
+        return try {
+            LocalDate.parse(fecha)
+                .atStartOfDay(ZoneOffset.UTC)
+                .toInstant()
+                .toEpochMilli()
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun iniciarEdicion() {
@@ -81,19 +107,78 @@ fun DatosPersonalesScreen(
         mostrarErrorNombre = false
     }
 
+    // Cargar información del usuario desde Supabase.
+    LaunchedEffect(Unit) {
+        try {
+            val usuario = repositorio.obtenerPerfilActual()
+
+            if (usuario != null) {
+                nombre = usuario.nombre
+                apellidos = usuario.apellidos.orEmpty()
+                nickname = usuario.nickname.orEmpty()
+                fechaNacimiento = convertirFechaAMillis(
+                    usuario.fechaNacimiento
+                )
+            }
+
+        } catch (e: Exception) {
+            tituloDialogo = "Error al cargar"
+            mensajeDialogo = e.message
+                ?: "No fue posible obtener tus datos personales."
+            mostrarConfirmacion = true
+
+        } finally {
+            cargando = false
+        }
+    }
+
+    // Guardar información en Supabase.
     fun guardarCambios() {
         if (nombreEdicion.isBlank()) {
             mostrarErrorNombre = true
             return
         }
 
-        nombre = nombreEdicion.trim()
-        apellidos = apellidosEdicion.trim()
-        nickname = nicknameEdicion.trim()
-        fechaNacimiento = fechaEdicion
+        scope.launch {
+            guardando = true
 
-        modoEdicion = false
-        mostrarConfirmacion = true
+            try {
+                val fechaTexto = fechaEdicion?.let {
+                    Instant.ofEpochMilli(it)
+                        .atZone(ZoneOffset.UTC)
+                        .toLocalDate()
+                        .format(DateTimeFormatter.ISO_LOCAL_DATE)
+                }
+
+                repositorio.guardarDatosPersonales(
+                    nombre = nombreEdicion,
+                    apellidos = apellidosEdicion,
+                    nickname = nicknameEdicion,
+                    fechaNacimiento = fechaTexto
+                )
+
+                // Actualizar los datos que se muestran.
+                nombre = nombreEdicion.trim()
+                apellidos = apellidosEdicion.trim()
+                nickname = nicknameEdicion.trim()
+                fechaNacimiento = fechaEdicion
+
+                modoEdicion = false
+                tituloDialogo = "¡Listo!"
+                mensajeDialogo = "Tus datos personales se guardaron correctamente."
+                mostrarConfirmacion = true
+
+            } catch (e: Exception) {
+                tituloDialogo = "No se pudieron guardar los cambios"
+                mensajeDialogo = e.message
+                    ?: "Ocurrió un error al actualizar tus datos."
+
+                mostrarConfirmacion = true
+
+            } finally {
+                guardando = false
+            }
+        }
     }
 
     Column(
@@ -191,7 +276,18 @@ fun DatosPersonalesScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            if (modoEdicion) {
+            if (cargando) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 35.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = AzulDatos)
+                }
+
+            } else if (modoEdicion) {
+
                 CampoDatosPersonales(
                     etiqueta = "Nombre *",
                     valor = nombreEdicion,
@@ -234,9 +330,9 @@ fun DatosPersonalesScreen(
                 Spacer(Modifier.height(7.dp))
 
                 OutlinedTextField(
-                    value = formatearFecha(fechaEdicion).let {
-                        if (fechaEdicion == null) "" else it
-                    },
+                    value = fechaEdicion?.let {
+                        formatearFecha(it)
+                    }.orEmpty(),
                     onValueChange = {},
                     readOnly = true,
                     placeholder = {
@@ -249,8 +345,7 @@ fun DatosPersonalesScreen(
                             Text("Elegir", color = AzulDatos)
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(13.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = AzulDatos,
@@ -262,6 +357,7 @@ fun DatosPersonalesScreen(
                 )
 
             } else {
+
                 CampoLecturaDatos(
                     etiqueta = "Nombre",
                     valor = nombre
@@ -285,13 +381,15 @@ fun DatosPersonalesScreen(
 
             Spacer(Modifier.height(28.dp))
 
-            if (modoEdicion) {
+            if (!cargando && modoEdicion) {
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
                         onClick = { cancelarEdicion() },
+                        enabled = !guardando,
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp),
@@ -305,6 +403,7 @@ fun DatosPersonalesScreen(
 
                     Button(
                         onClick = { guardarCambios() },
+                        enabled = !guardando,
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp),
@@ -313,11 +412,19 @@ fun DatosPersonalesScreen(
                             containerColor = AzulDatos
                         )
                     ) {
-                        Text(
-                            "Guardar cambios",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        if (guardando) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(21.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                "Guardar cambios",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
 
@@ -329,7 +436,8 @@ fun DatosPersonalesScreen(
                     fontSize = 12.sp
                 )
 
-            } else {
+            } else if (!cargando) {
+
                 Button(
                     onClick = { iniciarEdicion() },
                     modifier = Modifier
@@ -405,7 +513,7 @@ fun DatosPersonalesScreen(
         }
     }
 
-    // Confirmación visual
+    // Mensajes de éxito y error
     if (mostrarConfirmacion) {
         AlertDialog(
             onDismissRequest = {
@@ -414,14 +522,14 @@ fun DatosPersonalesScreen(
             containerColor = FondoDatos,
             title = {
                 Text(
-                    "¡Listo!",
+                    tituloDialogo,
                     color = TextoDatos,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    "Tus datos personales se actualizaron en esta vista de prueba. Todavía no se han guardado en la base de datos.",
+                    mensajeDialogo,
                     color = GrisDatos
                 )
             },
@@ -472,14 +580,6 @@ private fun EncabezadoDatosPersonales(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
-
-            /*IconButton(onClick = alAbrirNotificaciones) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notificaciones",
-                    tint = Color.White
-                )
-            }*/
         }
     }
 }
