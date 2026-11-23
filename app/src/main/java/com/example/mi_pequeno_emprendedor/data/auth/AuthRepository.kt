@@ -1,3 +1,4 @@
+
 package com.example.mi_pequeno_emprendedor.data.auth
 
 import com.example.mi_pequeno_emprendedor.core.supabase.SupabaseConfig
@@ -16,7 +17,7 @@ class AuthRepository(
     private val cliente: SupabaseClient = SupabaseConfig.client
 ) {
 
-    /** Devuelve true si Supabase creó la sesión de inmediato (sin confirmar correo). */
+    /** Registra una cuenta y devuelve true si se creó una sesión inmediatamente. */
     suspend fun registrar(
         correo: String,
         contrasena: String,
@@ -35,6 +36,7 @@ class AuthRepository(
                 put("fecha_nacimiento", fechaNacimiento)
             }
         }
+
         return cliente.auth.currentSessionOrNull() != null
     }
 
@@ -43,16 +45,31 @@ class AuthRepository(
 
     suspend fun iniciarSesion(nickname: String, contrasena: String) {
         val correo = emailPorNickname(nickname)
-            ?: throw IllegalArgumentException("Nickname o contraseña incorrectos")
+            ?: throw IllegalArgumentException(
+                "Nickname o contraseña incorrectos"
+            )
+
         cliente.auth.signInWith(Email) {
             email = correo
-            this.password = contrasena
+            password = contrasena
         }
+    }
+
+    /** Comprueba si Supabase tiene una sesión activa. */
+    fun haySesionActiva(): Boolean {
+        return cliente.auth.currentSessionOrNull() != null
+    }
+
+    /** Cierra la sesión actual. */
+    suspend fun cerrarSesion() {
+        cliente.auth.signOut()
     }
 
     private suspend fun emailPorNickname(nickname: String): String? =
         cliente.postgrest.rpc(
             "email_por_nickname",
-            buildJsonObject { put("nick", nickname) }
+            buildJsonObject {
+                put("nick", nickname)
+            }
         ).decodeSingleOrNull<CorreoRow>()?.correo
 }
