@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -54,12 +53,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -100,6 +102,8 @@ fun VentaScreen(onCerrar: () -> Unit = {}, viewModel: VentaViewModel = viewModel
     var montoRecibidoCentavos by remember { mutableStateOf<Int?>(null) }
     var mostrarExito by rememberSaveable { mutableStateOf(false) }
     var mostrarError by rememberSaveable { mutableStateOf(false) }
+    val focoBusqueda = remember { FocusRequester() }
+    val teclado = LocalSoftwareKeyboardController.current
     val cantidades = remember { mutableStateMapOf<Long, Int>() }
 
     val productos = remember(db.productos, filtro) {
@@ -111,6 +115,18 @@ fun VentaScreen(onCerrar: () -> Unit = {}, viewModel: VentaViewModel = viewModel
     val itemsVenta = cantidades.mapNotNull { (id, cantidad) ->
         db.productos.find { it.id == id }?.let { producto ->
             ItemVenta(producto.id, producto.nombre, producto.precio, cantidad)
+        }
+    }
+
+    LaunchedEffect(textoBusqueda) {
+        delay(300)
+        filtro = textoBusqueda
+    }
+
+    LaunchedEffect(mostrarBusqueda) {
+        if (mostrarBusqueda) {
+            focoBusqueda.requestFocus()
+            teclado?.show()
         }
     }
 
@@ -160,7 +176,6 @@ fun VentaScreen(onCerrar: () -> Unit = {}, viewModel: VentaViewModel = viewModel
             .fillMaxSize()
             .background(Color.White)
             .navigationBarsPadding()
-            .imePadding()
     ) {
         CabeceraVenta(onCerrar)
 
@@ -185,16 +200,10 @@ fun VentaScreen(onCerrar: () -> Unit = {}, viewModel: VentaViewModel = viewModel
                         focusedLabelColor = AzulBotones,
                         unfocusedLabelColor = TextoSecundario
                     ),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focoBusqueda)
                 )
-                Button(
-                    onClick = { filtro = textoBusqueda },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AzulBotones),
-                    modifier = Modifier.height(56.dp)
-                ) {
-                    Text("Buscar", fontWeight = FontWeight.SemiBold)
-                }
             } else {
                 Text(
                     "Productos",
@@ -217,6 +226,7 @@ fun VentaScreen(onCerrar: () -> Unit = {}, viewModel: VentaViewModel = viewModel
                     if (mostrarBusqueda) {
                         textoBusqueda = ""
                         filtro = ""
+                        teclado?.hide()
                     }
                     mostrarBusqueda = !mostrarBusqueda
                 }
