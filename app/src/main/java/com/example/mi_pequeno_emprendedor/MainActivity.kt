@@ -20,8 +20,11 @@ import com.example.mi_pequeno_emprendedor.data.auth.AuthRepository
 import com.example.mi_pequeno_emprendedor.feature.chat.presentation.screens.ChatConversacionScreen
 import com.example.mi_pequeno_emprendedor.feature.chat.presentation.screens.ColaboracionesScreen
 import com.example.mi_pequeno_emprendedor.feature.configuracion.presentation.screens.*
+import com.example.mi_pequeno_emprendedor.ui.components.NavegacionInferior
+import com.example.mi_pequeno_emprendedor.ui.inicio.InicioScreen
 import com.example.mi_pequeno_emprendedor.ui.login.LoginScreen
 import com.example.mi_pequeno_emprendedor.ui.registro.RegistroScreen
+import com.example.mi_pequeno_emprendedor.ui.venta.VentaScreen
 import com.example.mi_pequeno_emprendedor.ui.theme.Mi_pequeno_emprendedorTheme
 import kotlinx.coroutines.launch
 
@@ -57,7 +60,11 @@ class MainActivity : ComponentActivity() {
                 // =====================================
 
                 var seccionActual by remember {
-                    mutableStateOf("Colaboraciones")
+                    mutableStateOf("Inicio")
+                }
+
+                var mostrandoVenta by remember {
+                    mutableStateOf(false)
                 }
 
                 var chatSeleccionado by remember {
@@ -122,7 +129,8 @@ class MainActivity : ComponentActivity() {
                             LoginScreen(
                                 onIniciado = {
                                     pantallaActual = "app"
-                                    seccionActual = "Colaboraciones"
+                                    seccionActual = "Inicio"
+                                    mostrandoVenta = false
                                 },
 
                                 onRegistrarse = {
@@ -140,7 +148,8 @@ class MainActivity : ComponentActivity() {
                             RegistroScreen(
                                 onRegistrado = {
                                     pantallaActual = "app"
-                                    seccionActual = "Colaboraciones"
+                                    seccionActual = "Inicio"
+                                    mostrandoVenta = false
                                 }
                             )
                         }
@@ -155,6 +164,19 @@ class MainActivity : ComponentActivity() {
                             val opcionActual = opcionConfiguracion
 
                             when {
+
+                                // =====================================
+                                // CALCULADORA DE VENTAS
+                                // =====================================
+
+                                mostrandoVenta -> {
+
+                                    VentaScreen(
+                                        onCerrar = {
+                                            mostrandoVenta = false
+                                        }
+                                    )
+                                }
 
                                 // =====================================
                                 // CONVERSACIÓN
@@ -303,7 +325,8 @@ class MainActivity : ComponentActivity() {
 
                                                                 chatSeleccionado = null
                                                                 opcionConfiguracion = null
-                                                                seccionActual = "Colaboraciones"
+                                                                mostrandoVenta = false
+                                                                seccionActual = "Inicio"
 
                                                                 pantallaActual = "login"
 
@@ -348,15 +371,24 @@ class MainActivity : ComponentActivity() {
 
                                         "Inicio" -> {
 
-                                            PantallaProvisional(
-                                                titulo = "Inicio"
+                                            InicioScreen(
+                                                alRealizarVenta = {
+                                                    mostrandoVenta = true
+                                                },
+                                                alCambiarSeccion = { seccion ->
+                                                    seccionActual = seccion
+                                                }
                                             )
                                         }
 
                                         "Estadísticas" -> {
 
                                             PantallaProvisional(
-                                                titulo = "Estadísticas avanzadas"
+                                                titulo = "Estadísticas avanzadas",
+                                                seccion = "Estadísticas",
+                                                alCambiarSeccion = { seccion ->
+                                                    seccionActual = seccion
+                                                }
                                             )
                                         }
 
@@ -385,19 +417,31 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun PantallaProvisional(
-    titulo: String
+    titulo: String,
+    seccion: String,
+    alCambiarSeccion: (String) -> Unit
 ) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White),
-        contentAlignment = Alignment.Center
+            .background(Color.White)
     ) {
-        Text(
-            text = titulo,
-            fontSize = 25.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF0057CE)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = titulo,
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0057CE)
+            )
+        }
+        NavegacionInferior(
+            seccionSeleccionada = seccion,
+            alCambiarSeccion = alCambiarSeccion
         )
     }
 }
