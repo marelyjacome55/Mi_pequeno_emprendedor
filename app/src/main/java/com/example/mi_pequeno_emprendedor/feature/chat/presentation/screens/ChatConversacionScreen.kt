@@ -1,6 +1,7 @@
 
 package com.example.mi_pequeno_emprendedor.feature.chat.presentation.screens
 
+import com.example.mi_pequeno_emprendedor.feature.chat.data.ChatRepository
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -45,7 +46,7 @@ private val ChatVerdeClaro = Color(0xFFE5FBEA)
 // Datos temporales de los mensajes.
 // No se conectan a Supabase.
 private data class MensajeVisual(
-    val id: Int,
+    val id: Long,
     val contenido: String,
     val remitente: String,
     val hora: String,
@@ -63,40 +64,26 @@ fun ChatConversacionScreen(
 ) {
     val scope = rememberCoroutineScope()
     val listaEstado = rememberLazyListState()
+    val repositorio = remember { ChatRepository() }
 
-    var mensajes by rememberSaveable(chatId) {
-        mutableStateOf(
-            listOf(
-                MensajeVisual(
-                    1,
-                    "¡Hola! ¿Cómo están todos?",
-                    "Ana",
-                    "9:25 AM",
-                    false
-                ),
-                MensajeVisual(
-                    2,
-                    "Muy bien, gracias. ¿Ya revisaron el combo de bebidas?",
-                    "Carlos",
-                    "9:27 AM",
-                    false
-                ),
-                MensajeVisual(
-                    3,
-                    "Sí, me parece una buena propuesta.",
-                    "Tú",
-                    "9:28 AM",
-                    true
-                ),
-                MensajeVisual(
-                    4,
-                    "¡Perfecto! Entonces podemos continuar.",
-                    "Ana",
-                    "9:30 AM",
-                    false
-                )
-            )
-        )
+    var mensajes by remember(chatId) {
+        mutableStateOf<List<MensajeVisual>>(emptyList())
+    }
+
+    var usuarioActualId by remember(chatId) {
+        mutableStateOf<Long?>(null)
+    }
+
+    var cargando by remember(chatId) {
+        mutableStateOf(true)
+    }
+
+    var enviando by remember {
+        mutableStateOf(false)
+    }
+
+    var errorChat by remember {
+        mutableStateOf<String?>(null)
     }
 
     var textoMensaje by rememberSaveable(chatId) {
@@ -119,7 +106,7 @@ fun ChatConversacionScreen(
         mutableStateOf(nombreChat)
     }
 
-    // Campos visuales para crear un combo.
+// Campos visuales para crear un combo.
     var nombreCombo by rememberSaveable { mutableStateOf("") }
     var descripcionCombo by rememberSaveable { mutableStateOf("") }
     var precioVentaCombo by rememberSaveable { mutableStateOf("") }
@@ -127,10 +114,51 @@ fun ChatConversacionScreen(
     var cantidadCombo by rememberSaveable { mutableStateOf("") }
     var stockCombo by rememberSaveable { mutableStateOf("") }
 
-    // Campos visuales para actualizar inventario.
+// Campos visuales para actualizar inventario.
     var nombreProductoInventario by rememberSaveable { mutableStateOf("") }
     var stockActual by rememberSaveable { mutableStateOf("") }
     var nuevoStock by rememberSaveable { mutableStateOf("") }
+
+// Cargar los mensajes de Supabase.
+    LaunchedEffect(chatId) {
+        cargando = true
+        errorChat = null
+
+        try {
+            usuarioActualId = repositorio.obtenerUsuarioActualId()
+
+            val usuarios = repositorio.obtenerUsuariosDelGrupo(chatId)
+
+            val nombresUsuarios = usuarios.associate { usuario ->
+                usuario.usuarioId to (
+                        usuario.nickName?.takeIf { it.isNotBlank() }
+                            ?: usuario.nombre
+                        )
+            }
+
+            val mensajesBD = repositorio.obtenerMensajes(chatId)
+
+            mensajes = mensajesBD.map { mensaje ->
+                val idRemitente = mensaje.usuarioId
+
+                MensajeVisual(
+                    id = mensaje.mensajeId,
+                    contenido = mensaje.contenido,
+                    remitente = nombresUsuarios[idRemitente] ?: "Usuario",
+                    hora = mensaje.fecha
+                        ?.replace("T", " ")
+                        ?.substringAfter(" ")
+                        ?.take(5)
+                        ?: "",
+                    esMio = idRemitente == usuarioActualId
+                )
+            }
+        } catch (e: Exception) {
+            errorChat = e.message ?: "No se pudieron cargar los mensajes."
+        } finally {
+            cargando = false
+        }
+    }
 
     LaunchedEffect(mensajes.size) {
         if (mensajes.isNotEmpty()) {
@@ -279,8 +307,33 @@ fun ChatConversacionScreen(
                     fontWeight = FontWeight.SemiBold
                 )
             }
+            if (cargando) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = ChatAzul)
+                    }
+                }
+            }
 
-            if (mensajes.isEmpty()) {
+            if (errorChat != null) {
+                item {
+                    Text(
+                        text = errorChat!!,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        color = ChatRojo,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            if (!cargando && errorChat == null && mensajes.isEmpty()) {
                 item {
                     Text(
                         "Todavía no hay mensajes. ¡Inicia la conversación!",
@@ -302,21 +355,56 @@ fun ChatConversacionScreen(
         EntradaMensajeReal(
             texto = textoMensaje,
             alCambiarTexto = { textoMensaje = it },
-            enviando = false,
+            enviando = enviando,
             alAbrirOpciones = { mostrarOpcionesMas = true },
             alEnviar = {
                 val contenido = textoMensaje.trim()
 
-                if (contenido.isNotEmpty()) {
-                    mensajes = mensajes + MensajeVisual(
-                        id = (mensajes.maxOfOrNull { it.id } ?: 0) + 1,
-                        contenido = contenido,
-                        remitente = "Tú",
-                        hora = "Ahora",
-                        esMio = true
-                    )
+                if (contenido.isNotEmpty() && !enviando) {
+                    scope.launch {
+                        enviando = true
+                        errorChat = null
 
-                    textoMensaje = ""
+                        try {
+                            repositorio.enviarMensaje(
+                                chatId = chatId,
+                                contenido = contenido
+                            )
+
+                            textoMensaje = ""
+
+                            val usuarios = repositorio.obtenerUsuariosDelGrupo(chatId)
+
+                            val nombresUsuarios = usuarios.associate { usuario ->
+                                usuario.usuarioId to (
+                                        usuario.nickName?.takeIf { it.isNotBlank() }
+                                            ?: usuario.nombre
+                                        )
+                            }
+
+                            val mensajesBD = repositorio.obtenerMensajes(chatId)
+
+                            mensajes = mensajesBD.map { mensaje ->
+                                MensajeVisual(
+                                    id = mensaje.mensajeId,
+                                    contenido = mensaje.contenido,
+                                    remitente = nombresUsuarios[mensaje.usuarioId]
+                                        ?: "Usuario",
+                                    hora = mensaje.fecha
+                                        ?.replace("T", " ")
+                                        ?.substringAfter(" ")
+                                        ?.take(5)
+                                        ?: "",
+                                    esMio = mensaje.usuarioId == usuarioActualId
+                                )
+                            }
+                        } catch (e: Exception) {
+                            errorChat = e.message
+                                ?: "No se pudo enviar el mensaje."
+                        } finally {
+                            enviando = false
+                        }
+                    }
                 }
             }
         )
