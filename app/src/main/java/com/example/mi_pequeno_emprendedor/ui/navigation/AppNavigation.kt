@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.mi_pequeno_emprendedor.feature.beluguia.presentation.components.BeluguiaFloatingButton
 import com.example.mi_pequeno_emprendedor.feature.beluguia.presentation.screens.BeluguiaScreen
 import com.example.mi_pequeno_emprendedor.feature.chat.presentation.screens.ColaboracionesScreen
+import com.example.mi_pequeno_emprendedor.feature.estadisticas.presentation.screens.EstadisticasScreen
 import com.example.mi_pequeno_emprendedor.ui.components.NavegacionInferior
 
 @Composable
@@ -81,9 +82,7 @@ fun AppNavigation() {
                     }
                 }
                 composable("estadisticas") {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Pantalla de Estadísticas Avanzadas")
-                    }
+                    EstadisticasScreen()
                 }
                 composable("colaboraciones") {
                     ColaboracionesScreen()
